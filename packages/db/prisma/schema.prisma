@@ -1,0 +1,543 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum PlanTier {
+  free
+  pro
+  elite
+}
+
+enum UserStatus {
+  active
+  suspended
+  deletion_pending
+  deleted
+}
+
+enum ResumeSource {
+  upload
+  linkedin
+  form
+  voice
+}
+
+enum ApplicationStatus {
+  pending_review
+  approved
+  submitted
+  viewed
+  shortlisted
+  rejected
+  skipped
+  failed
+  expired
+}
+
+enum Channel {
+  whatsapp
+  telegram
+  email
+  push
+}
+
+enum JobPlatform {
+  linkedin
+  indeed
+  glassdoor
+  monster
+  naukrigulf
+  bayt
+  rozee_pk
+  naukri
+  reed_co_uk
+  totaljobs
+  stepstone
+  greenhouse
+  lever
+  workday
+  taleo
+  icims
+}
+
+enum NotificationStatus {
+  queued
+  scheduled
+  sent
+  suppressed
+  failed
+  deferred
+}
+
+enum Language {
+  en
+  es
+  pt
+  ar
+  ur
+}
+
+// ============================================================================
+// CORE DOMAIN MODELS
+// ============================================================================
+
+/// User account and profile information
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  cognitoId String   @unique
+  status    UserStatus @default(active)
+
+  // Profile info
+  fullName  String
+  phoneNumber String?
+  phoneCountryCode String? @default("US")
+  timezone  String   @default("UTC")
+
+  // Job search preferences
+  targetLocations String[] @default([])
+  targetRoles     String[] @default([])
+  targetIndustries String[] @default([])
+  desiredSalaryMin Int?
+  desiredSalaryMax Int?
+  preferredWorkType String[] @default([]) // remote, hybrid, onsite
+  yearsOfExperience Int?
+
+  // Subscription & plan
+  planTier  PlanTier @default(free)
+  planStartedAt DateTime @default(now())
+  planRenewsAt DateTime?
+  autoApplyDailyLimit Int @default(0) // 0 = free, 50 = pro, 150 = elite
+  autoApplyDailyUsed Int @default(0)
+  autoApplyDailyResetAt DateTime @default(now())
+
+  // Communication preferences
+  language Language @default(en)
+  quietHoursStartMinute Int @default(1380) // 23:00 in minutes
+  quietHoursEndMinute Int @default(420)    // 07:00 in minutes
+  communicationPreferences Json @default("{}")
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  profiles ResumeProfile[]
+  applications JobApplication[]
+  channelSubscriptions ChannelSubscription[]
+  notificationLogs NotificationLog[]
+  answerMemoryBank AnswerMemoryEntry[]
+  jobMatches JobMatch[]
+
+  @@index([email])
+  @@index([cognitoId])
+  @@index([planTier])
+  @@index([status])
+}
+
+/// Resume profiles (user can have multiple)
+model ResumeProfile {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Resume info
+  title     String
+  sourceType ResumeSource
+  sourceUrl String?
+  s3BucketUrl String? // Full resume stored in S3
+  currentVersion Int @default(1)
+
+  // Personal info extracted
+  fullName  String?
+  email     String?
+  phoneNumber String?
+  location  String?
+  profileUrl String?
+  summary   String?
+
+  // Professional details
+  skills    String[]
+  experience String?
+  education String?
+  certifications String[]
+
+  // ATS Metrics
+  atsScore  Int? // 0-100, null = not scored yet
+  atsDetails Json? // Checkpoint breakdown
+  lastScoredAt DateTime?
+
+  // Metadata
+  fileName  String?
+  fileSize  Int?
+  fileFormat String? // pdf, docx, txt
+  uploadedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  applications JobApplication[]
+  versions ResumeVersion[]
+
+  @@index([userId])
+  @@index([atsScore])
+  @@index([createdAt])
+}
+
+/// Resume version history
+model ResumeVersion {
+  id        String   @id @default(cuid())
+  resumeId  String
+  resume    ResumeProfile @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  versionNumber Int
+  s3BucketUrl String
+  atsScore  Int?
+  changes   Json // Diff from previous version
+  createdAt DateTime @default(now())
+
+  @@unique([resumeId, versionNumber])
+  @@index([resumeId])
+  @@index([createdAt])
+}
+
+/// Deduplicated job listings from all platforms
+model JobListing {
+  id        String   @id @default(cuid())
+
+  // Job basics
+  title     String
+  company   String
+  location  String
+  locationType String // remote, hybrid, onsite
+  salary    String?
+  salaryMin Int?
+  salaryMax Int?
+
+  // Description
+  description String
+  requirements String?
+  benefits   String?
+
+  // Platform tracking
+  platforms PlatformListing[]
+  deduplicatedFrom String[] @default([]) // Array of original job IDs before dedup
+
+  // Semantic search
+  embedding Vector? // Embedding stored separately in OpenSearch
+  embeddingModelVersion String @default("titan-embed-v2")
+
+  // Job health
+  isGhostJob Boolean @default(false)
+  ghostJobDetectedAt DateTime?
+  daysPosted Int?
+  applicationCount Int @default(0)
+
+  // Metadata
+  industry  String?
+  jobType   String? // full-time, contract, etc
+  skillsRequired String[]
+  tags      String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime?
+
+  // Relations
+  applications JobApplication[]
+  matches JobMatch[]
+
+  @@index([company])
+  @@index([title])
+  @@index([isGhostJob])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@fulltext([title, description, company]) // For text search
+}
+
+/// Platform-specific job metadata
+model PlatformListing {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  platform  JobPlatform
+  platformJobId String
+  platformUrl String
+  platformPostedAt DateTime?
+  lastScrapedAt DateTime?
+
+  @@unique([platform, platformJobId])
+  @@index([jobId])
+  @@index([platform])
+}
+
+/// Job match scores for each user
+model JobMatch {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  // Match scoring
+  semanticScore Int // 0-100, based on embedding similarity
+  skillsMatch Int // 0-100, skills overlap
+  overallScore Int // 0-100, weighted average
+  scoreBreakdown Json // Details of scoring
+
+  // User interaction
+  viewedAt  DateTime?
+  dismissedAt DateTime?
+  savedAt   DateTime?
+  appliedAt DateTime?
+  matchedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([overallScore])
+  @@index([matchedAt])
+}
+
+/// User applications to jobs
+model JobApplication {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resumeId  String
+  resume    ResumeProfile @relation(fields: [resumeId], references: [id], onDelete: Restrict)
+
+  // Application flow
+  status    ApplicationStatus @default(pending_review)
+  source    String // "manual" | "auto_apply"
+  appliedVia String // "direct_submit" | "email" | "ats"
+
+  // Review gate (auto-apply safety)
+  reviewGateId String?
+  reviewGateExpiresAt DateTime? // 1 hour TTL
+  reviewedAt DateTime?
+  reviewedBy String? // admin user ID
+
+  // Auto-apply form filling
+  formData  Json? // Answers submitted
+  formErrors String[]
+  screenshotBeforeUrl String?
+  screenshotAfterUrl String?
+  autoFillConfidence Float?
+
+  // Tracking
+  viewedByEmployer Boolean @default(false)
+  viewedAt  DateTime?
+  shortlistedAt DateTime?
+  rejectedAt DateTime?
+  clickedByEmployer Boolean @default(false)
+
+  // Metadata
+  appliedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime? // Application validity
+
+  // Relations
+  answerMemoryUsed AnswerMemoryEntry[]
+
+  @@unique([userId, jobId, resumeId])
+  @@index([userId])
+  @@index([status])
+  @@index([appliedAt])
+  @@index([source])
+}
+
+// ============================================================================
+// COMMUNICATION & NOTIFICATION
+// ============================================================================
+
+/// Channel subscription preferences
+model ChannelSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  channel   Channel
+  identifier String // phone, email, telegram_id, fcm_token
+  isVerified Boolean @default(false)
+  verifiedAt DateTime?
+
+  // Notification types
+  jobAlerts Boolean @default(true)
+  applicationUpdates Boolean @default(true)
+  weeklyReport Boolean @default(true)
+  promotional Boolean @default(false)
+  quietHoursRespected Boolean @default(true)
+
+  // Suppression
+  isSupressed Boolean @default(false)
+  supressedAt DateTime?
+  supressedReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, channel, identifier])
+  @@index([userId])
+  @@index([channel])
+  @@index([isVerified])
+}
+
+/// Notification delivery logs
+model NotificationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Message details
+  channel   Channel
+  messageId String?
+  templateName String?
+  subject   String?
+  body      String
+
+  // Delivery
+  status    NotificationStatus @default(queued)
+  sentAt    DateTime?
+  deliveredAt DateTime?
+  readAt    DateTime?
+  failureReason String?
+  retryCount Int @default(0)
+
+  // Scheduling
+  scheduledFor DateTime?
+  deferredUntil DateTime?
+
+  // Metadata
+  correlationId String? // Link related messages
+  metadata  Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([channel])
+  @@index([status])
+  @@index([sentAt])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// LEARNING & OPTIMIZATION
+// ============================================================================
+
+/// Answer memory bank for screening questions
+model AnswerMemoryEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Question fingerprint (semantic hash)
+  questionHash String // Hash of normalized question
+  questionText String
+  questionCategory String? // e.g., "behavioral", "technical", "cultural_fit"
+
+  // Answer
+  answer    String
+  confidence Float @default(0.85) // 0-1, cosine similarity threshold
+  answerSource String // "user_provided" | "auto_generated" | "extracted_from_resume"
+
+  // Usage tracking
+  usedInApplications JobApplication[] @relation("AnswerMemoryUsed")
+  usageCount Int @default(0)
+  lastUsedAt DateTime?
+
+  // Quality
+  userRatedAccuracy Int? // 1-5 stars
+  failureCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime? // Auto-delete after 6 months
+
+  @@unique([userId, questionHash])
+  @@index([userId])
+  @@index([lastUsedAt])
+}
+
+// ============================================================================
+// AUDIT & COMPLIANCE
+// ============================================================================
+
+/// Audit trail for agent actions
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+
+  // Action details
+  action    String // e.g., "resume_generated", "application_submitted", "job_matched"
+  agent     String // "job_search", "resume_builder", "auto_apply", "channel_orchestration"
+  status    String // "started", "completed", "failed"
+
+  // Input/Output (PII-masked)
+  inputData Json?
+  outputData Json?
+
+  // Result
+  resultCode String?
+  resultMessage String?
+  errorStack String?
+
+  // Context
+  correlationId String? // Link related actions
+  context   Json @default("{}")
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([agent])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// GDPR deletion request tracking
+model GdprDeletionRequest {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  status    String @default("pending") // pending, processing, completed
+  requestedAt DateTime @default(now())
+  processedAt DateTime?
+  completedAt DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ============================================================================
+// VECTOR STORAGE
+// ============================================================================
+
+model Vector {
+  id        String   @id @default(cuid())
+  jobId     String   @unique
+  embedding String // JSON stringified float array
+  modelVersion String
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+}

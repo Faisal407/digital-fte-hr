@@ -1,0 +1,29 @@
+{
+  "name": "@packages/shared",
+  "version": "1.0.0",
+  "description": "Shared types, validation schemas, constants, and utilities",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./dist/index.js",
+    "./types": "./dist/types/index.js",
+    "./validation": "./dist/validation/index.js",
+    "./constants": "./dist/constants/index.js",
+    "./utils/*": "./dist/utils/*.js"
+  },
+  "main": "dist/index.js",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --declaration",
+    "dev": "tsc --declaration --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}

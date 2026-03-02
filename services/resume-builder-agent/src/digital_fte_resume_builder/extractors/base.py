@@ -48,6 +48,23 @@ class ExtractedResume:
 
     # Languages
     languages: list[dict] = None
+
+    def __post_init__(self):
+        """Initialize list fields to empty lists if None"""
+        if self.work_experience is None:
+            self.work_experience = []
+        if self.education is None:
+            self.education = []
+        if self.skills is None:
+            self.skills = []
+        if self.certifications is None:
+            self.certifications = []
+        if self.projects is None:
+            self.projects = []
+        if self.volunteer_work is None:
+            self.volunteer_work = []
+        if self.languages is None:
+            self.languages = []
     # [{ language, proficiency }]
 
     # Raw content

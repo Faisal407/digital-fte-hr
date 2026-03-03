@@ -1,0 +1,36 @@
+{
+  "name": "@apps/api",
+  "version": "1.0.0",
+  "description": "Digital FTE HR - REST API (Node.js/Lambda)",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --declaration",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@packages/db": "workspace:*",
+    "@packages/shared": "workspace:*",
+    "@packages/llm": "workspace:*",
+    "aws-lambda": "^1.0.7",
+    "aws-sdk": "^2.1577.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "redis": "^4.7.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.7",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.10.0"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "env": {
+    "NEXTAUTH_SECRET": "@nextauth-secret",
+    "NEXTAUTH_URL": "@nextauth-url",
+    "NEXT_PUBLIC_API_URL": "@api-url",
+    "AWS_COGNITO_CLIENT_ID": "@cognito-client-id",
+    "AWS_COGNITO_CLIENT_SECRET": "@cognito-client-secret",
+    "AWS_COGNITO_ISSUER": "@cognito-issuer"
+  },
+  "headers": [
+    {
+      "source": "/api/auth/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ]
+}

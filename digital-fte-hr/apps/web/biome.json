@@ -1,0 +1,73 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.7.3/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "ignore": ["node_modules", ".next", "out", "build", "dist"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentSize": 2,
+    "lineWidth": 100,
+    "attributePosition": "auto",
+    "trailingCommas": "es5",
+    "bracketSpacing": true,
+    "arrowParentheses": "asNeeded",
+    "quoteStyle": "single",
+    "quoteProperties": "asNeeded",
+    "semicolons": "always",
+    "jsxQuoteStyle": "double"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noConstAssign": "error",
+        "noInvalidConstructorSuper": "error",
+        "noInvalidUseBeforeDeclaration": "error",
+        "noNewSymbol": "error",
+        "noSelfCompare": "error",
+        "noUnnecessaryAlternationCharacterClass": "warn"
+      },
+      "style": {
+        "noImplicitBoolean": "warn",
+        "noNegationElse": "warn",
+        "useConst": "warn",
+        "useTemplate": "warn"
+      },
+      "suspicious": {
+        "noImplicitAnyLet": "error",
+        "noFunctionAssign": "error",
+        "noClassAssign": "error",
+        "noMisleadingCharacterClass": "error"
+      },
+      "performance": {
+        "noAccumulatingSpread": "warn"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "semicolons": "always",
+      "trailingCommas": "es5",
+      "arrowParentheses": "asNeeded",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteStyle": "single"
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  }
+}

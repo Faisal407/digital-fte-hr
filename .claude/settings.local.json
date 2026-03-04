@@ -43,7 +43,9 @@
       "Bash(timeout 5 bash:*)",
       "Bash(/d/digital-fte-hr/BEFORE_AFTER_COMPARISON.md:*)",
       "Bash(/d/digital-fte-hr/QUICK_REFERENCE.md:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(sed:*)",
+      "Bash(\"D:\\\\digital-fte-hr\\\\digital-fte-hr\\\\apps\\\\web\\\\TEST_RESULTS.md\":*)"
     ]
   }
 }

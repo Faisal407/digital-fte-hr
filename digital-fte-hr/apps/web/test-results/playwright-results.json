@@ -1,0 +1,16 @@
+{
+  "passed": 0,
+  "failed": 2,
+  "tests": [
+    {
+      "test": "Login Page Loads",
+      "status": "FAIL",
+      "reason": "Missing form elements"
+    },
+    {
+      "test": "Suite Error",
+      "status": "ERROR",
+      "error": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"email\"]').first()\u001b[22m\n"
+    }
+  ]
+}

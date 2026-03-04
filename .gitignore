@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────
+# Digital FTE for HR — .gitignore
+# ─────────────────────────────────────────────────────────────
+
+# Environment secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.uv/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+*.egg-info/
+
+# AWS CDK
+infra/cdk.out/
+infra/.cdk.staging/
+
+# Prisma
+packages/db/prisma/generated/
+
+# Testing
+coverage/
+.vitest/
+.pytest_cache/
+htmlcov/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+logs/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Temp
+tmp/
+temp/
+.tmp/

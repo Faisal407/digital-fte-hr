@@ -42,7 +42,8 @@
       "Bash(rm:*)",
       "Bash(timeout 5 bash:*)",
       "Bash(/d/digital-fte-hr/BEFORE_AFTER_COMPARISON.md:*)",
-      "Bash(/d/digital-fte-hr/QUICK_REFERENCE.md:*)"
+      "Bash(/d/digital-fte-hr/QUICK_REFERENCE.md:*)",
+      "Bash(ls:*)"
     ]
   }
 }

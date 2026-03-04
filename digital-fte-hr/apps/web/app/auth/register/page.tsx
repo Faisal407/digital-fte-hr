@@ -1,16 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase, isSupabaseConfigured } from '@/lib/supabase-client';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -19,9 +15,20 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(true);
+
+  useEffect(() => {
+    const configured = isSupabaseConfigured();
+    setIsConfigured(configured);
+    if (!configured) {
+      setError('Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local');
+    }
+  }, []);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isConfigured || !supabase) return;
+
     setError(null);
     setIsLoading(true);
 
@@ -46,7 +53,7 @@ export default function RegisterPage() {
       }
 
       // Sign up with Supabase
-      const { data, error: supabaseError } = await supabase.auth.signUp({
+      const { data, error: supabaseError } = await supabase!.auth.signUp({
         email,
         password,
         options: {
@@ -105,90 +112,109 @@ export default function RegisterPage() {
         <p className="mt-1 text-sm text-gray-600">Sign up to get started</p>
       </div>
 
-      {error && (
+      {!isConfigured && (
+        <Alert variant="destructive">
+          <AlertTitle>Configuration Required</AlertTitle>
+          <AlertDescription>
+            Supabase credentials not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {error && isConfigured && (
         <Alert variant="destructive">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <form onSubmit={handleSignUp} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email Address</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
+      {isConfigured ? (
+        <>
+          <form onSubmit={handleSignUp} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                required
+              />
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="At least 8 characters"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-          <p className="text-xs text-gray-500">Must be at least 8 characters</p>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                required
+              />
+              <p className="text-xs text-gray-500">Must be at least 8 characters</p>
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isLoading}
+                required
+              />
+            </div>
 
-        <div className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            id="terms"
-            className="mt-1 h-4 w-4 rounded border-gray-300"
-            required
-            disabled={isLoading}
-          />
-          <Label htmlFor="terms" className="text-xs">
-            I agree to the{' '}
-            <Link href="/terms" className="text-blue-600 hover:underline">
-              Terms of Service
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="terms"
+                className="mt-1 h-4 w-4 rounded border-gray-300"
+                required
+                disabled={isLoading}
+              />
+              <Label htmlFor="terms" className="text-xs">
+                I agree to the{' '}
+                <Link href="/terms" className="text-blue-600 hover:underline">
+                  Terms of Service
+                </Link>
+                {' '}and{' '}
+                <Link href="/privacy" className="text-blue-600 hover:underline">
+                  Privacy Policy
+                </Link>
+              </Label>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Creating account...' : 'Create Account'}
+            </Button>
+          </form>
+
+          <p className="text-center text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link href="/auth/login" className="font-semibold text-blue-600 hover:underline">
+              Sign in
             </Link>
-            {' '}and{' '}
-            <Link href="/privacy" className="text-blue-600 hover:underline">
-              Privacy Policy
-            </Link>
-          </Label>
+          </p>
+
+          <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900">
+            <p className="font-semibold mb-1">✅ Powered by Supabase</p>
+            <p>Your account will be securely stored in Supabase. Email verification required.</p>
+          </div>
+        </>
+      ) : (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-sm text-yellow-900">
+            Follow <strong>SUPABASE_SETUP.md</strong> to configure your Supabase credentials.
+          </p>
         </div>
-
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Creating account...' : 'Create Account'}
-        </Button>
-      </form>
-
-      <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link href="/auth/login" className="font-semibold text-blue-600 hover:underline">
-          Sign in
-        </Link>
-      </p>
-
-      <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900">
-        <p className="font-semibold mb-1">✅ Powered by Supabase</p>
-        <p>Your account will be securely stored in Supabase. Email verification required.</p>
-      </div>
+      )}
     </div>
   );
 }

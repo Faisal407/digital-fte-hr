@@ -56,7 +56,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // Validate form data
+      // Validate form data with Zod
       const validatedData = registerSchema.parse(formData);
 
       const response = await fetch('/api/auth/register', {
@@ -70,17 +70,31 @@ export default function RegisterPage() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        setGeneralError(data.message || 'Failed to create account');
+        // Handle different error types
+        if (data.error?.code === 'USER_EXISTS') {
+          setGeneralError(
+            'An account with this email already exists. Please sign in with your password.'
+          );
+        } else if (data.error?.code === 'VALIDATION_ERROR') {
+          setGeneralError(data.error.message || 'Please check your input and try again');
+        } else {
+          setGeneralError(data.error?.message || 'Failed to create account');
+        }
         return;
       }
 
-      success('Account Created', 'Redirecting to login...');
-      router.push('/auth/login');
+      success('Account Created Successfully! 🎉', 'Redirecting to sign in...');
+
+      // Redirect after a short delay so user can see success message
+      setTimeout(() => {
+        router.push('/auth/login');
+      }, 1500);
     } catch (err: any) {
       if (err.errors) {
-        // Zod validation errors
+        // Zod validation errors - set field-specific errors
         const fieldErrors: FormErrors = {};
         err.errors.forEach((error: any) => {
           const field = error.path[0];
@@ -88,7 +102,8 @@ export default function RegisterPage() {
         });
         setErrors(fieldErrors);
       } else {
-        setGeneralError(err instanceof Error ? err.message : 'An error occurred');
+        // General error
+        setGeneralError(err instanceof Error ? err.message : 'An unexpected error occurred');
       }
     } finally {
       setIsLoading(false);

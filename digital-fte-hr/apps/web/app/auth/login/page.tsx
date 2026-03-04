@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,18 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { success } = useToast();
+
+  // Check for error from NextAuth
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      // Decode the error message
+      const decodedError = decodeURIComponent(errorParam);
+      setError(decodedError);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,21 +35,73 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // Validate inputs first
+      if (!email || !email.trim()) {
+        setError('Email address is required');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!password || !password.trim()) {
+        setError('Password is required');
+        setIsLoading(false);
+        return;
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError('Please enter a valid email address');
+        setIsLoading(false);
+        return;
+      }
+
+      // Attempt sign in with credentials provider
       const result = await signIn('credentials', {
-        email,
+        email: email.toLowerCase(),
         password,
         redirect: false,
       });
 
-      if (!result?.ok) {
-        setError(result?.error || 'Invalid email or password');
+      // Handle authentication results
+      if (!result) {
+        setError('Authentication service unavailable. Please try again.');
         return;
       }
 
-      success('Login Successful', 'Redirecting to dashboard...');
-      router.push('/dashboard');
+      // Check for specific error messages from our credentials provider
+      if (result.error) {
+        let displayError = result.error;
+
+        // Map common NextAuth error codes and custom messages
+        if (result.error.includes('not found')) {
+          displayError = 'Account not found. Please create a new account first.';
+        } else if (result.error.includes('Wrong password')) {
+          displayError = 'Wrong password. Please try again.';
+        } else if (result.error.includes('required')) {
+          displayError = 'Email and password are required.';
+        } else if (result.error === 'CredentialsSignin') {
+          displayError = 'Invalid email or password. Please try again.';
+        }
+
+        setError(displayError);
+        return;
+      }
+
+      if (!result.ok) {
+        setError('Invalid email or password. Please try again.');
+        return;
+      }
+
+      success('Login Successful!', 'Redirecting to dashboard...');
+
+      // Small delay to show success message
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -54,9 +117,9 @@ export default function LoginPage() {
       </div>
 
       {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Authentication Error</AlertTitle>
+          <AlertDescription className="mt-2">{error}</AlertDescription>
         </Alert>
       )}
 

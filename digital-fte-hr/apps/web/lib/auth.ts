@@ -1,14 +1,85 @@
 /**
  * NextAuth.js v5 Configuration
  * Integrates with Amazon Cognito for OAuth authentication
+ * Also includes Credentials provider for development/testing
  */
 
 import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
 import Cognito from 'next-auth/providers/cognito';
+import Credentials from 'next-auth/providers/credentials';
+import { z } from 'zod';
+
+// Mock user database - replace with real database in production
+const mockUsers = new Map<string, { id: string; email: string; password: string; name: string }>();
+
+// Pre-populate with test user
+mockUsers.set('test@example.com', {
+  id: '1',
+  email: 'test@example.com',
+  password: 'Password123',
+  name: 'Test User',
+});
+
+const credentialsSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
 
 export const authConfig: NextAuthConfig = {
   providers: [
+    Credentials({
+      name: 'Email',
+      credentials: {
+        email: { label: 'Email', type: 'email', placeholder: 'your@email.com' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials) {
+          const error = new Error('Email and password required');
+          error.cause = { type: 'EmailPasswordMissing' };
+          throw error;
+        }
+
+        try {
+          const { email, password } = credentialsSchema.parse(credentials);
+
+          // Check if user exists
+          const user = mockUsers.get(email.toLowerCase());
+
+          if (!user) {
+            const error = new Error('Account not found. Please create an account first.');
+            error.cause = { type: 'AccountNotFound' };
+            throw error;
+          }
+
+          // Check password
+          if (user.password !== password) {
+            const error = new Error('Wrong password. Please try again.');
+            error.cause = { type: 'WrongPassword' };
+            throw error;
+          }
+
+          // Return user object
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            const err = new Error(error.errors[0].message);
+            err.cause = { type: 'ValidationError' };
+            throw err;
+          }
+          // Re-throw with error type
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new Error('Authentication failed');
+        }
+      },
+    }),
     Cognito({
       clientId: process.env.AWS_COGNITO_CLIENT_ID,
       clientSecret: process.env.AWS_COGNITO_CLIENT_SECRET,
@@ -143,3 +214,6 @@ declare module 'next-auth' {
 // JWT module augmentation moved to next-auth module
 
 export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);
+
+// Export for API routes (user registration)
+export { mockUsers };

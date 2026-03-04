@@ -45,7 +45,12 @@
       "Bash(/d/digital-fte-hr/QUICK_REFERENCE.md:*)",
       "Bash(ls:*)",
       "Bash(sed:*)",
-      "Bash(\"D:\\\\digital-fte-hr\\\\digital-fte-hr\\\\apps\\\\web\\\\TEST_RESULTS.md\":*)"
+      "Bash(\"D:\\\\digital-fte-hr\\\\digital-fte-hr\\\\apps\\\\web\\\\TEST_RESULTS.md\":*)",
+      "Bash(npm run:*)",
+      "Bash(vercel:*)",
+      "Bash(mv \\(dashboard\\):*)",
+      "Bash(cp:*)",
+      "Bash(find \\(dashboard\\):*)"
     ]
   }
 }

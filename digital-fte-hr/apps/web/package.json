@@ -10,7 +10,8 @@
     "lint": "biome lint --write app components lib hooks store types",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "deploy": "node deploy.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.0",

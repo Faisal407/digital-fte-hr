@@ -60,9 +60,11 @@ export default function LoginPage() {
 
       if (data.user) {
         // Supabase login successful - redirect to dashboard
+        console.log('Login successful, redirecting to dashboard...');
         router.push('/dashboard');
       }
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'An error occurred');
       setIsLoading(false);
     }

@@ -20,23 +20,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Get current session
-    supabase?.auth.getSession().then((result: any) => {
-      setUser(result.data?.session?.user || null);
-      setLoading(false);
-    }).catch((error: any) => {
-      console.error('Error fetching session:', error);
-      setLoading(false);
-    });
+    let isMounted = true;
+
+    // Initialize auth state
+    const initializeAuth = async () => {
+      try {
+        // Get current session
+        const { data: { session }, error } = await supabase!.auth.getSession();
+        if (isMounted) {
+          if (error) {
+            console.error('Error fetching session:', error);
+            setUser(null);
+          } else {
+            setUser(session?.user || null);
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
-    const subscription = supabase?.auth.onAuthStateChange((_event: any, session: any) => {
-      setUser(session?.user || null);
-      setLoading(false);
+    const { data: { subscription } } = supabase!.auth.onAuthStateChange((_event: any, session: any) => {
+      if (isMounted) {
+        setUser(session?.user || null);
+        setLoading(false);
+      }
     });
 
     return () => {
-      subscription?.data?.subscription?.unsubscribe();
+      isMounted = false;
+      subscription?.unsubscribe();
     };
   }, []);
 

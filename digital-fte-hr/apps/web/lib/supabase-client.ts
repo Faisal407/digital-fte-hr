@@ -12,6 +12,14 @@ export const isSupabaseConfigured = (): boolean => {
 };
 
 // Only create client if properly configured
-export const supabase = isSupabaseConfigured()
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null as any;
+let supabaseClient: any = null;
+
+try {
+  if (isSupabaseConfigured()) {
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  }
+} catch (error) {
+  console.error('Error initializing Supabase client:', error);
+}
+
+export const supabase = supabaseClient;

@@ -25,15 +25,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize auth state
     const initializeAuth = async () => {
       try {
-        // Get current session
-        const { data: { session }, error } = await supabase!.auth.getSession();
+        const result = await supabase!.auth.getSession();
         if (isMounted) {
-          if (error) {
-            console.error('Error fetching session:', error);
-            setUser(null);
-          } else {
-            setUser(session?.user || null);
-          }
+          setUser(result?.data?.session?.user || null);
           setLoading(false);
         }
       } catch (error) {
@@ -47,17 +41,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     // Listen for auth changes
-    const authStateResponse = supabase!.auth.onAuthStateChange((_event: any, session: any) => {
-      if (isMounted) {
-        setUser(session?.user || null);
-        setLoading(false);
-      }
-    });
+    try {
+      const result = supabase!.auth.onAuthStateChange((_event: any, session: any) => {
+        if (isMounted) {
+          setUser(session?.user || null);
+        }
+      });
 
-    return () => {
-      isMounted = false;
-      authStateResponse?.data?.subscription?.unsubscribe();
-    };
+      const subscription = result?.data?.subscription;
+
+      return () => {
+        isMounted = false;
+        if (subscription) {
+          subscription.unsubscribe();
+        }
+      };
+    } catch (error) {
+      console.error('Auth state change setup error:', error);
+      return () => {
+        isMounted = false;
+      };
+    }
   }, []);
 
   return (

@@ -3,14 +3,26 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/app/providers/auth-provider';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { apiClient } from '@/lib/api-client';
 
 export default function DashboardPage() {
   const { user } = useAuth();
 
   const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User';
+
+  const { data: overviewData, isLoading } = useQuery({
+    queryKey: ['dashboard', 'overview'],
+    queryFn: () => apiClient.get('/dashboard/overview'),
+  });
+
+  const overview = (overviewData?.data && typeof overviewData.data === 'object')
+    ? (overviewData.data as any)
+    : null;
 
   return (
     <div className="space-y-8">
@@ -24,35 +36,46 @@ export default function DashboardPage() {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard
-          title="Applications This Week"
-          value="0"
-          icon="✅"
-          subtitle="No data yet"
-        />
+        {isLoading ? (
+          <>
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </>
+        ) : (
+          <>
+            <DashboardCard
+              title="Total Jobs Found"
+              value={overview?.totalJobsFound?.toString() || '0'}
+              icon="🔍"
+              subtitle={`This ${overview?.totalJobsFound ? 'month' : 'month'}`}
+            />
 
-        <DashboardCard
-          title="Active Job Searches"
-          value="0"
-          icon="⚡"
-          subtitle="No data yet"
-        />
+            <DashboardCard
+              title="Applications Submitted"
+              value={overview?.applicationsSubmitted?.toString() || '0'}
+              icon="✅"
+              subtitle="Total sent"
+            />
 
-        <DashboardCard
-          title="Best Resume Score"
-          value="0/100"
-          icon="📄"
-          subtitle="No data yet"
-          variant="success"
-        />
+            <DashboardCard
+              title="Match Score"
+              value={`${overview?.matchScore || 0}%`}
+              icon="📄"
+              subtitle="Average rating"
+              variant="success"
+            />
 
-        <DashboardCard
-          title="Response Rate"
-          value="0%"
-          icon="📈"
-          subtitle="No data yet"
-          variant="primary"
-        />
+            <DashboardCard
+              title="Response Rate"
+              value={`${overview?.responseRate || 0}%`}
+              icon="📈"
+              subtitle="From employers"
+              variant="primary"
+            />
+          </>
+        )}
       </div>
 
       {/* AI Copilot Section */}

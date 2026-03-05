@@ -2,23 +2,53 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { JobMatchCard } from '@/components/jobs/JobMatchCard';
+import { apiClient } from '@/lib/api-client';
 
 export default function JobSearchPage() {
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+
+  // Mutation to start job search
+  const searchMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post('/jobs/search', { query, location });
+      if (response.success && response.data && typeof response.data === 'object' && 'taskId' in response.data) {
+        return (response.data as { taskId: string }).taskId;
+      }
+      throw new Error('Search failed');
+    },
+    onSuccess: (newTaskId) => {
+      setTaskId(newTaskId);
+    },
+  });
+
+  // Query to poll search results
+  const { data: searchResults, isLoading: isLoadingResults } = useQuery({
+    queryKey: ['jobSearch', taskId],
+    queryFn: () => (taskId ? apiClient.get(`/jobs/search/${taskId}`) : Promise.resolve(null)),
+    enabled: !!taskId,
+    refetchInterval: 2000,
+  });
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSearching(true);
-    // TODO: Implement job search API integration
-    setTimeout(() => setIsSearching(false), 1000);
+    if (!query.trim()) return;
+    searchMutation.mutate();
   };
+
+  const jobs = (searchResults?.data && typeof searchResults.data === 'object' && 'jobs' in searchResults.data)
+    ? ((searchResults.data as { jobs: Array<Record<string, unknown>> }).jobs || [])
+    : [];
+  const isSearching = searchMutation.isPending || isLoadingResults;
 
   return (
     <div className="space-y-6">
@@ -45,6 +75,7 @@ export default function JobSearchPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   required
+                  disabled={isSearching}
                 />
               </div>
               <div>
@@ -54,6 +85,7 @@ export default function JobSearchPage() {
                   placeholder="e.g., San Francisco, Remote"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  disabled={isSearching}
                 />
               </div>
             </div>
@@ -65,58 +97,70 @@ export default function JobSearchPage() {
         </CardContent>
       </Card>
 
-      {/* Results Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Search Results</CardTitle>
-          <CardDescription>Job matches from 15+ platforms</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-12">
-          {isSearching ? (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-500">Searching jobs...</p>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-5/6 mx-auto"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-4/6 mx-auto"></div>
-              </div>
+      {/* Results */}
+      {taskId && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {isLoadingResults ? 'Searching...' : `Found ${jobs.length} Job Matches`}
+            </h2>
+          </div>
+
+          {isLoadingResults && !jobs.length ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-48" />
+              ))}
+            </div>
+          ) : jobs.length > 0 ? (
+            <div className="space-y-4">
+              {jobs.map((job: any) => (
+                <JobMatchCard
+                  key={(job as any)?.id}
+                  job={job as any}
+                  onSave={(jobId) => console.log('Saved:', jobId)}
+                  onApply={(jobId) => console.log('Apply:', jobId)}
+                />
+              ))}
             </div>
           ) : (
-            <p className="text-gray-500">
-              {query
-                ? 'Searching for jobs... This is a placeholder for Phase 2 implementation.'
-                : 'Enter a job title and location to get started'}
-            </p>
+            <Card>
+              <CardContent className="text-center py-12">
+                <p className="text-gray-500">No jobs found matching your criteria</p>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* Popular Searches */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Popular Searches</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {[
-              'Product Manager',
-              'Senior Engineer',
-              'Data Scientist',
-              'UX Designer',
-              'Marketing Manager',
-            ].map((search) => (
-              <Badge
-                key={search}
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => setQuery(search)}
-              >
-                {search}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {!taskId && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Popular Searches</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {[
+                'Product Manager',
+                'Senior Engineer',
+                'Data Scientist',
+                'UX Designer',
+                'Marketing Manager',
+              ].map((search) => (
+                <Badge
+                  key={search}
+                  variant="outline"
+                  className="cursor-pointer hover:bg-[#00F0A0] hover:text-black"
+                  onClick={() => setQuery(search)}
+                >
+                  {search}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

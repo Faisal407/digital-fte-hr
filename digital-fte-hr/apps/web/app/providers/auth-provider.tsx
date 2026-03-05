@@ -24,18 +24,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase?.auth.getSession().then((result: any) => {
       setUser(result.data?.session?.user || null);
       setLoading(false);
+    }).catch((error: any) => {
+      console.error('Error fetching session:', error);
+      setLoading(false);
     });
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase?.auth.onAuthStateChange((_event: any, session: any) => {
+    const subscription = supabase?.auth.onAuthStateChange((_event: any, session: any) => {
       setUser(session?.user || null);
       setLoading(false);
-    }) || { data: { subscription: null } };
+    });
 
     return () => {
-      subscription?.unsubscribe();
+      subscription?.data?.subscription?.unsubscribe();
     };
   }, []);
 

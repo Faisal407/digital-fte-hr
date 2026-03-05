@@ -1,5 +1,37 @@
 import Link from 'next/link';
 
+interface FeatureCardProps {
+  icon: string;
+  title: string;
+  description: string;
+  href: string;
+  disabled?: boolean;
+}
+
+function FeatureCard({ icon, title, description, href, disabled = false }: FeatureCardProps) {
+  if (disabled) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm opacity-60 cursor-not-allowed">
+        <div className="text-3xl">{icon}</div>
+        <h3 className="mt-4 font-semibold text-gray-900">{title}</h3>
+        <p className="mt-2 text-sm text-gray-600">{description}</p>
+        <p className="mt-4 text-xs text-gray-500">Coming soon - Configure API first</p>
+      </div>
+    );
+  }
+
+  return (
+    <Link href={href}>
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-blue-300 hover:scale-105 cursor-pointer">
+        <div className="text-3xl">{icon}</div>
+        <h3 className="mt-4 font-semibold text-gray-900">{title}</h3>
+        <p className="mt-2 text-sm text-gray-600">{description}</p>
+        <p className="mt-4 text-xs font-semibold text-blue-600">→ Explore</p>
+      </div>
+    </Link>
+  );
+}
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50 px-4 py-12">
@@ -30,35 +62,35 @@ export default function Home() {
         </div>
 
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="text-3xl">🔍</div>
-            <h3 className="mt-4 font-semibold text-gray-900">Smart Job Search</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Find jobs across 15+ platforms with AI-powered matching
-            </p>
-          </div>
+          <FeatureCard
+            icon="🔍"
+            title="Smart Job Search"
+            description="Find jobs across 15+ platforms with AI-powered matching"
+            href="/auth/login"
+            disabled={true}
+          />
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="text-3xl">📄</div>
-            <h3 className="mt-4 font-semibold text-gray-900">Resume Optimizer</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Get ATS-optimized resumes with 23-point analysis
-            </p>
-          </div>
+          <FeatureCard
+            icon="📄"
+            title="Resume Optimizer"
+            description="Get ATS-optimized resumes with 23-point analysis"
+            href="/auth/login"
+            disabled={true}
+          />
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="text-3xl">⚡</div>
-            <h3 className="mt-4 font-semibold text-gray-900">Auto-Apply</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Apply to relevant jobs with human approval gates
-            </p>
-          </div>
+          <FeatureCard
+            icon="⚡"
+            title="Auto-Apply"
+            description="Apply to relevant jobs with human approval gates"
+            href="/auth/login"
+            disabled={true}
+          />
         </div>
 
         <div className="mt-16 text-sm text-gray-500">
           <p>Phase 1: Web App Setup Complete ✅</p>
           <p className="mt-2">
-            Next: Core Infrastructure & API Client Integration
+            Next: Configure API Backend & Database
           </p>
         </div>
       </div>

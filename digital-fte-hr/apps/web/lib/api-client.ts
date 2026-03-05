@@ -5,7 +5,7 @@
  */
 
 import { ApiResponse } from '@/types';
-import { getSession } from 'next-auth/react';
+import { supabase } from '@/lib/supabase-client';
 
 export type { ApiResponse };
 
@@ -45,9 +45,9 @@ class ApiClient {
     };
 
     try {
-      const session = await getSession();
-      if (session?.accessToken) {
-        headers['Authorization'] = `Bearer ${session.accessToken}`;
+      const { data: { session } } = await supabase?.auth.getSession() || { data: { session: null } };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
     } catch (_error) {
       // Session not available (e.g., static page)

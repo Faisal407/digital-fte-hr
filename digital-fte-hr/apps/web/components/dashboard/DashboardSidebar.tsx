@@ -4,42 +4,32 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useUIStore } from '@/store/ui-store';
-import { useSession } from 'next-auth/react';
-import { MAIN_MENU, PLAN_LIMITS } from '@/lib/constants';
 
 interface DashboardSidebarProps {
   mobile?: boolean;
   onNavigate?: () => void;
 }
 
+const MAIN_MENU = [
+  { href: '/dashboard', icon: '📊', label: 'Dashboard' },
+  { href: '/dashboard/recommendations', icon: '⚡', label: 'Recommendations' },
+  { href: '/dashboard/resume', icon: '📄', label: 'Resume' },
+  { href: '/dashboard/applications', icon: '✅', label: 'Applications' },
+  { href: '/dashboard/interview', icon: '🎯', label: 'Interview Prep' },
+  { href: '/dashboard/analytics', icon: '📈', label: 'Analytics' },
+  { href: '/dashboard/settings', icon: '⚙️', label: 'Settings' },
+];
+
 export function DashboardSidebar({ mobile = false, onNavigate }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
-  const { data: session } = useSession();
-
-  // Get user plan from session or default to 'free'
-  const userPlan = (session?.user as any)?.plan || 'free';
-  const planConfig = PLAN_LIMITS[userPlan as keyof typeof PLAN_LIMITS];
 
   const SidebarContent = () => (
     <>
       {/* Logo Area */}
       <div className="flex items-center justify-between border-b border-gray-200 p-4">
-        <Link href="/dashboard" className="font-bold text-gray-900">
-          Digital FTE
+        <Link href="/dashboard" className="font-bold text-lg text-gray-900">
+          <span className="text-primary-400">◆</span> Digital FTE
         </Link>
-        {!mobile && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="h-8 w-8 hidden md:inline-flex"
-            title="Toggle sidebar"
-          >
-            {sidebarCollapsed ? '→' : '←'}
-          </Button>
-        )}
       </div>
 
       {/* Navigation Menu */}
@@ -55,47 +45,36 @@ export function DashboardSidebar({ mobile = false, onNavigate }: DashboardSideba
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-blue-50 text-blue-600'
+                  ? 'bg-primary-50 text-primary-600'
                   : 'text-gray-700 hover:bg-gray-50',
               )}
-              title={sidebarCollapsed && !mobile ? item.label : undefined}
             >
               <span className="text-lg">{item.icon}</span>
-              {(!sidebarCollapsed || mobile) && <span>{item.label}</span>}
+              <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Footer - Plan Info */}
-      {(!sidebarCollapsed || mobile) && (
-        <div className="border-t border-gray-200 p-4">
-          <div className="rounded-lg bg-blue-50 p-3">
-            <p className="text-xs font-semibold text-blue-900">
-              {userPlan === 'free' ? 'Free Plan' : userPlan === 'pro' ? 'Pro Plan' : 'Elite Plan'}
-            </p>
-            {planConfig?.applyDailyLimit > 0 && (
-              <p className="mt-1 text-xs text-blue-700">
-                {planConfig.applyDailyLimit} apps/day
-              </p>
-            )}
-            {userPlan === 'free' && (
-              <Link href="/dashboard/settings/plan" onClick={onNavigate}>
-                <Button
-                  variant="default"
-                  className="mt-2 h-8 w-full text-xs"
-                >
-                  Upgrade
-                </Button>
-              </Link>
-            )}
-          </div>
+      <div className="border-t border-gray-200 p-4">
+        <div className="rounded-lg bg-primary-50 p-3">
+          <p className="text-xs font-semibold text-primary-700">Free Plan</p>
+          <p className="mt-1 text-xs text-primary-600">0 apps/day</p>
+          <Link href="/dashboard/settings">
+            <Button
+              variant="default"
+              className="mt-2 h-8 w-full text-xs bg-primary-400 hover:bg-primary-500 text-white"
+            >
+              Upgrade
+            </Button>
+          </Link>
         </div>
-      )}
+      </div>
     </>
   );
 
-  // Mobile version - just render content (parent handles sheet)
+  // Mobile version
   if (mobile) {
     return (
       <div className="flex h-full flex-col bg-white">
@@ -106,12 +85,7 @@ export function DashboardSidebar({ mobile = false, onNavigate }: DashboardSideba
 
   // Desktop version
   return (
-    <aside
-      className={cn(
-        'hidden md:flex flex-col border-r border-gray-200 bg-white transition-all duration-300',
-        sidebarCollapsed ? 'w-20' : 'w-64',
-      )}
-    >
+    <aside className="hidden md:flex w-64 flex-col border-r border-gray-200 bg-white">
       <SidebarContent />
     </aside>
   );

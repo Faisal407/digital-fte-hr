@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-03-04T18:26:30.580Z",
+  "testSuite": "Supabase Authentication Pages",
+  "tests": [
+    {
+      "name": "Login Page Loads",
+      "status": "FAIL",
+      "error": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"email\"]').first()\u001b[22m\n"
+    },
+    {
+      "name": "Register Page Loads",
+      "status": "FAIL",
+      "error": "Form fields (email, 2 passwords) or submit button not found"
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 2,
+    "errors": [
+      "Login page test: locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"email\"]').first()\u001b[22m\n",
+      "Register page test: Form fields (email, 2 passwords) or submit button not found"
+    ]
+  }
+}

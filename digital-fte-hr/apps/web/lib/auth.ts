@@ -1,18 +1,27 @@
 /**
  * NextAuth.js v5 Configuration
- * Integrates with Amazon Cognito for OAuth authentication
+ * Uses Supabase Auth for authentication
+ *
+ * IMPORTANT: Supabase credentials required in .env.local
+ * - NEXT_PUBLIC_SUPABASE_URL: Your Supabase project URL
+ * - SUPABASE_SECRET: Service role secret key
  */
 
 import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
-import Cognito from 'next-auth/providers/cognito';
+import GitHub from 'next-auth/providers/github';
+import Google from 'next-auth/providers/google';
 
 export const authConfig: NextAuthConfig = {
   providers: [
-    Cognito({
-      clientId: process.env.AWS_COGNITO_CLIENT_ID,
-      clientSecret: process.env.AWS_COGNITO_CLIENT_SECRET,
-      issuer: process.env.AWS_COGNITO_ISSUER,
+    // Email/Password handled by Supabase directly (see login page)
+    GitHub({
+      clientId: process.env.AUTH_GITHUB_ID,
+      clientSecret: process.env.AUTH_GITHUB_SECRET,
+    }),
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
     }),
   ],
 
@@ -24,20 +33,13 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async jwt({ token, account, user }) {
       if (account) {
-        // Store OAuth token and expiration
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at;
       }
 
       if (user) {
         token.id = user.id;
         token.email = user.email;
-      }
-
-      // Refresh token if expired
-      if (token.expiresAt && Date.now() >= (token.expiresAt as number) * 1000) {
-        return refreshAccessToken(token);
       }
 
       return token;
@@ -46,7 +48,6 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.accessToken = token.accessToken as string;
       }
       return session;
     },
@@ -87,42 +88,6 @@ export const authConfig: NextAuthConfig = {
     },
   },
 };
-
-/**
- * Refresh OAuth token when expired
- */
-async function refreshAccessToken(token: any) {
-  try {
-    const url = `${process.env.AWS_COGNITO_ISSUER}/oauth2/token`;
-
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: process.env.AWS_COGNITO_CLIENT_ID!,
-        client_secret: process.env.AWS_COGNITO_CLIENT_SECRET!,
-        grant_type: 'refresh_token',
-        refresh_token: token.refreshToken,
-      }),
-      method: 'POST',
-    });
-
-    const refreshedTokens = await response.json();
-
-    if (!response.ok) {
-      throw refreshedTokens;
-    }
-
-    return {
-      ...token,
-      accessToken: refreshedTokens.access_token,
-      expiresAt: Math.floor(Date.now() / 1000) + refreshedTokens.expires_in,
-      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
-    };
-  } catch (error) {
-    console.error('Token refresh failed:', error);
-    return { ...token, error: 'RefreshAccessTokenError' };
-  }
-}
 
 declare module 'next-auth' {
   interface Session {

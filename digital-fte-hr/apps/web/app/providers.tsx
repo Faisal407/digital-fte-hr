@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { SessionProvider } from 'next-auth/react';
+import { AuthProvider } from './providers/auth-provider';
 import { Toaster } from '@/components/ui/toaster';
 
 // Initialize QueryClient with default options
@@ -22,11 +22,11 @@ const queryClient = new QueryClient({
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <AuthProvider>
       <QueryClientProvider client={queryClient}>
         {children}
         <Toaster />
       </QueryClientProvider>
-    </SessionProvider>
+    </AuthProvider>
   );
 }

@@ -50,7 +50,9 @@
       "Bash(vercel:*)",
       "Bash(mv \\(dashboard\\):*)",
       "Bash(cp:*)",
-      "Bash(find \\(dashboard\\):*)"
+      "Bash(find \\(dashboard\\):*)",
+      "Bash(fi)",
+      "Bash(done)"
     ]
   }
 }

@@ -15,7 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !supabase) {
       setLoading(false);
       return;
     }
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize auth state
     const initializeAuth = async () => {
       try {
-        const result = await supabase!.auth.getSession();
+        const result = await supabase.auth.getSession();
         if (isMounted) {
           setUser(result?.data?.session?.user || null);
           setLoading(false);
@@ -41,27 +41,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     // Listen for auth changes
+    let unsubscribe: (() => void) | null = null;
     try {
-      const result = supabase!.auth.onAuthStateChange((_event: any, session: any) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
         if (isMounted) {
           setUser(session?.user || null);
         }
       });
 
-      const subscription = result?.data?.subscription;
-
-      return () => {
-        isMounted = false;
+      unsubscribe = () => {
         if (subscription) {
           subscription.unsubscribe();
         }
       };
     } catch (error) {
       console.error('Auth state change setup error:', error);
-      return () => {
-        isMounted = false;
-      };
+      unsubscribe = () => {};
     }
+
+    return () => {
+      isMounted = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   return (

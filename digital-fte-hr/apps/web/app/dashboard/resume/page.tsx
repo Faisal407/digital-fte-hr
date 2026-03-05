@@ -1,10 +1,80 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { ResumeVariantManager } from '@/components/resume/ResumeVariantManager';
+
+interface ResumeVariant {
+  id: string;
+  name: string;
+  atsScore: number;
+  targetRole?: string;
+  createdAt: Date;
+  isDefault: boolean;
+}
 
 export default function ResumePage() {
+  const [showVariants, setShowVariants] = useState(false);
+  const [variants, setVariants] = useState<ResumeVariant[]>([
+    {
+      id: '1',
+      name: 'General Purpose',
+      atsScore: 78,
+      targetRole: 'Product Manager',
+      createdAt: new Date(),
+      isDefault: true,
+    },
+  ]);
+
+  const handleCreateVariant = (name: string, targetRole: string) => {
+    const newVariant: ResumeVariant = {
+      id: String(variants.length + 1),
+      name,
+      atsScore: Math.floor(Math.random() * 30) + 65,
+      targetRole,
+      createdAt: new Date(),
+      isDefault: false,
+    };
+    setVariants([...variants, newVariant]);
+  };
+
+  const handleDeleteVariant = (id: string) => {
+    setVariants(variants.filter((v) => v.id !== id));
+  };
+
+  const handleSetDefault = (id: string) => {
+    setVariants(
+      variants.map((v) => ({
+        ...v,
+        isDefault: v.id === id,
+      }))
+    );
+  };
+
+  if (showVariants) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <Button
+            onClick={() => setShowVariants(false)}
+            variant="outline"
+            className="border-gray-300 mb-4"
+          >
+            ← Back to Upload
+          </Button>
+        </div>
+        <ResumeVariantManager
+          variants={variants}
+          onCreateVariant={handleCreateVariant}
+          onDeleteVariant={handleDeleteVariant}
+          onSetDefault={handleSetDefault}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -58,9 +128,30 @@ export default function ResumePage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <DashboardCard title="Resumes Created" value="0" icon="📄" />
-        <DashboardCard title="Avg ATS Score" value="0/100" icon="📊" variant="success" />
-        <DashboardCard title="Optimized" value="0" icon="⚡" variant="primary" />
+        <DashboardCard title="Resumes Created" value={variants.length} icon="📄" />
+        <DashboardCard
+          title="Avg ATS Score"
+          value={Math.round(variants.reduce((acc, v) => acc + v.atsScore, 0) / variants.length) + '/100'}
+          icon="📊"
+          variant="success"
+        />
+        <DashboardCard title="Optimized" value={variants.length} icon="⚡" variant="primary" />
+      </div>
+
+      {/* Resume Variants Section */}
+      <div className="rounded-lg border border-primary-200 bg-primary-50 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Resume Variants</h3>
+            <p className="text-sm text-gray-600 mt-1">Create tailored versions for different roles</p>
+          </div>
+          <Button
+            onClick={() => setShowVariants(true)}
+            className="bg-primary-400 hover:bg-primary-500 text-white"
+          >
+            Manage Variants →
+          </Button>
+        </div>
       </div>
 
       {/* Tips */}

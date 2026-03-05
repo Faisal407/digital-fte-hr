@@ -2,10 +2,15 @@
 
 export const dynamic = 'force-dynamic';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { InterviewDayChecklist } from '@/components/interview/InterviewDayChecklist';
 
 export default function InterviewPage() {
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [practiceSessions] = useState(0);
+
   return (
     <div className="space-y-8">
       <div>
@@ -60,33 +65,65 @@ export default function InterviewPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <DashboardCard title="Interviews Practiced" value="0" icon="📹" />
+        <DashboardCard title="Interviews Practiced" value={practiceSessions} icon="📹" />
         <DashboardCard title="Avg Confidence" value="0%" icon="💪" />
         <DashboardCard title="Improvement" value="0%" icon="📈" variant="success" />
       </div>
 
+      {/* Interview Day Checklist */}
+      {showChecklist && (
+        <InterviewDayChecklist companyName="Target Company" />
+      )}
+
+      {!showChecklist && (
+        <div className="rounded-lg border-2 border-dashed border-primary-300 bg-primary-50 p-8 text-center">
+          <h3 className="text-xl font-bold text-gray-900">📋 Have an Interview Coming Up?</h3>
+          <p className="mt-2 text-gray-700">
+            Use our interview day checklist to prepare and ensure you don't miss anything
+          </p>
+          <Button
+            onClick={() => setShowChecklist(true)}
+            className="mt-4 bg-primary-400 hover:bg-primary-500 text-white"
+          >
+            Open Interview Checklist
+          </Button>
+        </div>
+      )}
+
+      {showChecklist && (
+        <Button
+          onClick={() => setShowChecklist(false)}
+          variant="outline"
+          className="border-gray-300"
+        >
+          ← Back to Interview Resources
+        </Button>
+      )}
+
       {/* Resources */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Interview Resources</h3>
-        <ul className="space-y-3 text-sm">
-          <li className="flex gap-3">
-            <span className="text-primary-400 font-bold">📚</span>
-            <span className="text-gray-700"><strong>STAR Method Guide</strong> - Learn the Situation, Task, Action, Result framework</span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-primary-400 font-bold">🎯</span>
-            <span className="text-gray-700"><strong>Company Research</strong> - Deep dive into your target companies</span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-primary-400 font-bold">💬</span>
-            <span className="text-gray-700"><strong>Negotiation Tips</strong> - Master salary and benefits discussions</span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-primary-400 font-bold">✅</span>
-            <span className="text-gray-700"><strong>Questions to Ask</strong> - Smart questions to ask the interviewer</span>
-          </li>
-        </ul>
-      </div>
+      {!showChecklist && (
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Interview Resources</h3>
+          <ul className="space-y-3 text-sm">
+            <li className="flex gap-3">
+              <span className="text-primary-400 font-bold">📚</span>
+              <span className="text-gray-700"><strong>STAR Method Guide</strong> - Learn the Situation, Task, Action, Result framework</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-primary-400 font-bold">🎯</span>
+              <span className="text-gray-700"><strong>Company Research</strong> - Deep dive into your target companies</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-primary-400 font-bold">💬</span>
+              <span className="text-gray-700"><strong>Negotiation Tips</strong> - Master salary and benefits discussions</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-primary-400 font-bold">✅</span>
+              <span className="text-gray-700"><strong>Questions to Ask</strong> - Smart questions to ask the interviewer</span>
+            </li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

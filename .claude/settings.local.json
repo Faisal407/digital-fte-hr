@@ -55,7 +55,8 @@
       "Bash(done)",
       "WebSearch",
       "WebFetch(domain:jobright.ai)",
-      "Bash(D:/digital-fte-hr/BUILD_CHECKLIST.md:*)"
+      "Bash(D:/digital-fte-hr/BUILD_CHECKLIST.md:*)",
+      "Bash(pnpm build:*)"
     ]
   }
 }

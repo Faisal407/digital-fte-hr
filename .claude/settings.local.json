@@ -52,7 +52,10 @@
       "Bash(cp:*)",
       "Bash(find \\(dashboard\\):*)",
       "Bash(fi)",
-      "Bash(done)"
+      "Bash(done)",
+      "WebSearch",
+      "WebFetch(domain:jobright.ai)",
+      "Bash(D:/digital-fte-hr/BUILD_CHECKLIST.md:*)"
     ]
   }
 }

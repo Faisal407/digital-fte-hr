@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseUser, unauthorized, notFound, serverError, success, badRequest } from '@/lib/api-helpers';
+import { getSupabaseUser, unauthorized, notFound, serverError, success } from '@/lib/api-helpers';
 import { db } from '@/lib/db';
 
 export async function PATCH(

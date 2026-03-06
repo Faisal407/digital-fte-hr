@@ -16,19 +16,17 @@ export default function DashboardPage() {
 
   const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User';
 
-  const { data: overviewData, isLoading, refetch } = useQuery({
-    queryKey: ['dashboard', 'overview', user?.id],
-    queryFn: () => apiClient.get('/dashboard/overview'),
-    enabled: !!user,
-    staleTime: 0, // Force fresh fetch
+  const { data: overviewData, isLoading } = useQuery({
+    queryKey: ['dashboard-overview'],
+    queryFn: async () => {
+      console.log('Fetching dashboard overview...');
+      const result = await apiClient.get('/dashboard/overview');
+      console.log('Dashboard result:', result);
+      return result;
+    },
+    staleTime: 0,
+    gcTime: 0,
   });
-
-  // Refetch when user becomes available
-  React.useEffect(() => {
-    if (user) {
-      refetch();
-    }
-  }, [user, refetch]);
 
   const overview = (overviewData?.data && typeof overviewData.data === 'object')
     ? (overviewData.data as any)

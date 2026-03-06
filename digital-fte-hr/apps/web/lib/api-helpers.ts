@@ -15,19 +15,34 @@ export async function getSupabaseUser(request: NextRequest) {
   const token = authHeader.slice(7);
 
   try {
-    // Verify JWT using Supabase Admin client (service role key)
+    // Decode JWT to extract user ID
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return { user: null, error: { code: 'INVALID_TOKEN', message: 'Invalid token format' } };
+    }
+
+    let decoded: any;
+    try {
+      decoded = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    } catch {
+      return { user: null, error: { code: 'INVALID_TOKEN', message: 'Invalid token' } };
+    }
+
+    const userId = decoded.sub;
+    if (!userId) {
+      return { user: null, error: { code: 'INVALID_TOKEN', message: 'No user ID in token' } };
+    }
+
+    // Get user from Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
-    const {
-      data: { user: supabaseUser },
-      error: authError,
-    } = await supabase.auth.admin.getUserById(token);
+    const { data: supabaseUser, error: authError } = await supabase.auth.admin.getUserById(userId);
 
     if (authError || !supabaseUser) {
-      return { user: null, error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } };
+      return { user: null, error: { code: 'INVALID_TOKEN', message: 'User not found' } };
     }
 
     // Upsert UserProfile in database

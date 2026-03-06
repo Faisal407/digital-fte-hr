@@ -7,25 +7,14 @@ export async function GET(request: NextRequest) {
   if (error) return unauthorized(error.message);
 
   try {
-    const [totalApplications, submittedApplications, platformStats] = await Promise.all([
+    const [totalApplications, submittedApplications] = await Promise.all([
       db.jobApplication.count({
         where: { userId: user.id },
       }),
       db.jobApplication.count({
         where: { userId: user.id, status: 'submitted' },
       }),
-      db.jobApplication.groupBy({
-        by: ['jobListing'],
-        where: { userId: user.id },
-        _count: { id: true },
-      }),
     ]);
-
-    // Calculate platform breakdown from applications
-    const platformBreakdown = await db.jobApplication.groupBy({
-      by: ['jobListing'],
-      where: { userId: user.id },
-    });
 
     // Fetch user profile for match score
     const userProfile = await db.userProfile.findUnique({

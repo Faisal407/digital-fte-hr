@@ -16,8 +16,9 @@ export default function DashboardPage() {
   const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User';
 
   const { data: overviewData, isLoading } = useQuery({
-    queryKey: ['dashboard', 'overview'],
+    queryKey: ['dashboard', 'overview', user?.id],
     queryFn: () => apiClient.get('/dashboard/overview'),
+    enabled: !!user, // Only run query when user is authenticated
   });
 
   const overview = (overviewData?.data && typeof overviewData.data === 'object')

@@ -1,39 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { getSupabaseUser, unauthorized, serverError, success } from '@/lib/api-helpers';
+import { db } from '@/lib/db';
 
 export async function PATCH(request: NextRequest) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
   try {
     const data = await request.json();
-    const { firstName, lastName, email, phone, location, timezone, salaryExpectation } = data;
+    const { firstName, lastName, phone, timezone, salaryMin, salaryMax } = data;
 
-    return NextResponse.json({
-      success: true,
+    const updated = await db.userProfile.update({
+      where: { id: user.id },
       data: {
-        profile: {
-          firstName,
-          lastName,
-          email,
-          phone,
-          location,
-          timezone,
-          salaryExpectation,
-          updatedAt: new Date().toISOString(),
-        },
-        message: 'Profile updated successfully',
-      },
-      meta: {
-        processingTime: 53,
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(phone && { phoneE164: phone }),
+        ...(timezone && { timezone }),
+        ...(salaryMin !== undefined && { salaryMin }),
+        ...(salaryMax !== undefined && { salaryMax }),
+        lastActiveAt: new Date(),
       },
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to update profile',
-        },
+
+    return success({
+      profile: {
+        id: updated.id,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        phone: updated.phoneE164,
+        timezone: updated.timezone,
+        salaryMin: updated.salaryMin,
+        salaryMax: updated.salaryMax,
+        updatedAt: updated.updatedAt.toISOString(),
       },
-      { status: 500 }
-    );
+      message: 'Profile updated successfully',
+    });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    return serverError();
   }
 }

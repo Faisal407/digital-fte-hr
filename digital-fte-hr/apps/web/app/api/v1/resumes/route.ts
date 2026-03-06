@@ -1,99 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server'; // NextRequest used in POST
+import { NextRequest } from 'next/server';
+import { getSupabaseUser, unauthorized, badRequest, serverError, success, accepted } from '@/lib/api-helpers';
+import { db } from '@/lib/db';
 
-const mockResumes = [
-  {
-    id: 'resume-1',
-    versionNumber: 1,
-    sourceType: 'upload',
-    atsScore: 87,
-    isActive: true,
-    createdAt: '2024-03-01',
-    checkpoints: {
-      total: 23,
-      passed: 20,
-      highlights: ['No tables', 'ATS keywords', 'Proper formatting'],
-    },
-  },
-  {
-    id: 'resume-2',
-    versionNumber: 2,
-    sourceType: 'form',
-    atsScore: 92,
-    isActive: false,
-    createdAt: '2024-03-03',
-    checkpoints: {
-      total: 23,
-      passed: 23,
-      highlights: ['Perfect formatting', 'All keywords present', 'No errors'],
-    },
-  },
-];
+export async function GET(request: NextRequest) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
 
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    data: {
-      resumes: mockResumes,
-      total: mockResumes.length,
-      activeResume: mockResumes.find((r) => r.isActive),
-    },
-    meta: {
-      processingTime: 35,
-    },
-  });
+  try {
+    const resumes = await db.resumeProfile.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const activeResume = resumes.find((r) => r.isActive);
+
+    const formattedResumes = resumes.map((r) => ({
+      id: r.id,
+      versionNumber: r.versionNumber,
+      sourceType: r.sourceType,
+      atsScore: r.atsScore,
+      isActive: r.isActive,
+      createdAt: r.createdAt.toISOString().split('T')[0],
+      checkpoints: r.checkpoints,
+    }));
+
+    return success({
+      resumes: formattedResumes,
+      total: formattedResumes.length,
+      activeResume: activeResume
+        ? {
+            id: activeResume.id,
+            versionNumber: activeResume.versionNumber,
+            atsScore: activeResume.atsScore,
+          }
+        : null,
+    });
+  } catch (err) {
+    console.error('Resumes fetch error:', err);
+    return serverError();
+  }
 }
 
 export async function POST(request: NextRequest) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
   try {
     const formData = await request.formData();
     const file = formData.get('file');
 
     if (!file) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'file is required',
-          },
-        },
-        { status: 400 }
-      );
+      return badRequest('file is required');
     }
 
-    const newResume = {
-      id: 'resume-' + Date.now(),
-      versionNumber: mockResumes.length + 1,
-      sourceType: 'upload',
-      atsScore: null,
-      isActive: false,
-      createdAt: new Date().toISOString(),
-      checkpoints: null,
-    };
+    // Get next version number
+    const lastResume = await db.resumeProfile.findFirst({
+      where: { userId: user.id },
+      orderBy: { versionNumber: 'desc' },
+    });
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          resume: newResume,
-          message: 'Resume uploaded successfully. Processing ATS score...',
-        },
-        meta: {
-          processingTime: 128,
-        },
+    const nextVersion = (lastResume?.versionNumber || 0) + 1;
+
+    // Create resume record
+    const newResume = await db.resumeProfile.create({
+      data: {
+        userId: user.id,
+        versionNumber: nextVersion,
+        sourceType: 'upload',
+        s3KeyOriginal: `resumes/${user.id}/resume-v${nextVersion}.pdf`,
+        isActive: false,
       },
-      { status: 201 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to upload resume',
-        },
+    });
+
+    return accepted({
+      resume: {
+        id: newResume.id,
+        versionNumber: newResume.versionNumber,
+        sourceType: newResume.sourceType,
+        atsScore: null,
+        isActive: newResume.isActive,
+        createdAt: newResume.createdAt.toISOString(),
       },
-      { status: 500 }
-    );
+      message: 'Resume uploaded successfully. Processing ATS score...',
+    });
+  } catch (err) {
+    console.error('Resume upload error:', err);
+    return serverError();
   }
 }

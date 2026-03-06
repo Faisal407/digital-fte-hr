@@ -1,237 +1,100 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-const mockJobMatches = [
-  {
-    id: 'job-1',
-    externalId: 'ext-001',
-    platform: 'LinkedIn',
-    title: 'Senior Product Manager',
-    company: { name: 'Tech Corp', logo: 'https://via.placeholder.com/40' },
-    location: 'Dubai, UAE',
-    salary: { min: 15000, max: 20000, currency: 'AED', period: 'month' },
-    description: 'Lead product strategy and roadmap for our core platform...',
-    postedAt: '2 days ago',
-    applicationUrl: 'https://linkedin.com/jobs/view/123',
-    matchScore: 92,
-    isGhostJob: false,
-    atsType: 'LinkedIn',
-    skills: ['Product Management', 'Strategy', 'Analytics'],
-  },
-  {
-    id: 'job-2',
-    externalId: 'ext-002',
-    platform: 'Indeed',
-    title: 'Product Manager - Growth',
-    company: { name: 'Startup Inc', logo: 'https://via.placeholder.com/40' },
-    location: 'Remote',
-    salary: { min: 120000, max: 160000, currency: 'USD', period: 'year' },
-    description: 'Join our growth team to scale user acquisition...',
-    postedAt: '1 day ago',
-    applicationUrl: 'https://indeed.com/jobs/view/456',
-    matchScore: 85,
-    isGhostJob: false,
-    atsType: 'Workday',
-    skills: ['Growth', 'Analytics', 'SQL'],
-  },
-  {
-    id: 'job-3',
-    externalId: 'ext-003',
-    platform: 'Glassdoor',
-    title: 'PM II - Backend',
-    company: { name: 'Cloud Systems', logo: 'https://via.placeholder.com/40' },
-    location: 'San Francisco, CA',
-    salary: { min: 150000, max: 200000, currency: 'USD', period: 'year' },
-    description: 'Help build scalable backend infrastructure...',
-    postedAt: '3 days ago',
-    applicationUrl: 'https://glassdoor.com/jobs/view/789',
-    matchScore: 78,
-    isGhostJob: false,
-    atsType: 'Greenhouse',
-    skills: ['Backend', 'System Design', 'Python'],
-  },
-  {
-    id: 'job-4',
-    externalId: 'ext-004',
-    platform: 'NaukriGulf',
-    title: 'Product Manager',
-    company: { name: 'Middle East Tech', logo: 'https://via.placeholder.com/40' },
-    location: 'Abu Dhabi, UAE',
-    salary: { min: 18000, max: 25000, currency: 'AED', period: 'month' },
-    description: 'Lead product initiatives for MENA region...',
-    postedAt: '5 days ago',
-    applicationUrl: 'https://naukrigulf.com/jobs/view/101',
-    matchScore: 72,
-    isGhostJob: false,
-    atsType: 'Custom',
-    skills: ['Product Strategy', 'MENA Market', 'Leadership'],
-  },
-  {
-    id: 'job-5',
-    externalId: 'ext-005',
-    platform: 'LinkedIn',
-    title: 'Sr. PM - Enterprise',
-    company: { name: 'Fortune 500 Corp', logo: 'https://via.placeholder.com/40' },
-    location: 'New York, NY',
-    salary: { min: 180000, max: 250000, currency: 'USD', period: 'year' },
-    description: 'Lead enterprise product strategy...',
-    postedAt: '1 week ago',
-    applicationUrl: 'https://linkedin.com/jobs/view/202',
-    matchScore: 88,
-    isGhostJob: false,
-    atsType: 'Taleo',
-    skills: ['Enterprise Sales', 'B2B', 'Leadership'],
-  },
-  {
-    id: 'job-6',
-    externalId: 'ext-006',
-    platform: 'Indeed',
-    title: 'Associate Product Manager',
-    company: { name: 'EdTech Startup', logo: 'https://via.placeholder.com/40' },
-    location: 'London, UK',
-    salary: { min: 50000, max: 65000, currency: 'GBP', period: 'year' },
-    description: 'Join our product team as we scale education...',
-    postedAt: '4 days ago',
-    applicationUrl: 'https://indeed.com/jobs/view/567',
-    matchScore: 65,
-    isGhostJob: false,
-    atsType: 'Lever',
-    skills: ['Product Analytics', 'User Research', 'Design'],
-  },
-  {
-    id: 'job-7',
-    externalId: 'ext-007',
-    platform: 'Glassdoor',
-    title: 'Product Manager - Mobile',
-    company: { name: 'Mobile Innovations', logo: 'https://via.placeholder.com/40' },
-    location: 'Bangalore, India',
-    salary: { min: 20, max: 30, currency: 'LPA', period: 'year' },
-    description: 'Drive mobile product innovation...',
-    postedAt: '2 days ago',
-    applicationUrl: 'https://glassdoor.com/jobs/view/890',
-    matchScore: 74,
-    isGhostJob: false,
-    atsType: 'Custom',
-    skills: ['Mobile', 'iOS', 'Android'],
-  },
-  {
-    id: 'job-8',
-    externalId: 'ext-008',
-    platform: 'NaukriGulf',
-    title: 'Product Lead',
-    company: { name: 'SaaS Solutions', logo: 'https://via.placeholder.com/40' },
-    location: 'Dubai, UAE',
-    salary: { min: 20000, max: 28000, currency: 'AED', period: 'month' },
-    description: 'Build next-gen SaaS product...',
-    postedAt: '6 days ago',
-    applicationUrl: 'https://naukrigulf.com/jobs/view/202',
-    matchScore: 81,
-    isGhostJob: false,
-    atsType: 'Custom',
-    skills: ['SaaS', 'Product Strategy', 'Scrum'],
-  },
-  {
-    id: 'job-9',
-    externalId: 'ext-009',
-    platform: 'LinkedIn',
-    title: 'Product Manager - AI',
-    company: { name: 'AI Research Lab', logo: 'https://via.placeholder.com/40' },
-    location: 'Remote',
-    salary: { min: 140000, max: 200000, currency: 'USD', period: 'year' },
-    description: 'Shape the future of AI products...',
-    postedAt: '3 days ago',
-    applicationUrl: 'https://linkedin.com/jobs/view/303',
-    matchScore: 84,
-    isGhostJob: false,
-    atsType: 'Greenhouse',
-    skills: ['AI/ML', 'Product Strategy', 'Python'],
-  },
-  {
-    id: 'job-10',
-    externalId: 'ext-010',
-    platform: 'Indeed',
-    title: 'Portfolio Product Manager',
-    company: { name: 'Financial Tech', logo: 'https://via.placeholder.com/40' },
-    location: 'Toronto, Canada',
-    salary: { min: 110000, max: 150000, currency: 'CAD', period: 'year' },
-    description: 'Lead portfolio management tools...',
-    postedAt: '5 days ago',
-    applicationUrl: 'https://indeed.com/jobs/view/678',
-    matchScore: 70,
-    isGhostJob: false,
-    atsType: 'Custom',
-    skills: ['Finance', 'Portfolio Management', 'Excel'],
-  },
-  {
-    id: 'job-11',
-    externalId: 'ext-011',
-    platform: 'Glassdoor',
-    title: 'Sr. PM - Data Platform',
-    company: { name: 'Data Corp', logo: 'https://via.placeholder.com/40' },
-    location: 'Seattle, WA',
-    salary: { min: 160000, max: 220000, currency: 'USD', period: 'year' },
-    description: 'Build data infrastructure products...',
-    postedAt: '1 day ago',
-    applicationUrl: 'https://glassdoor.com/jobs/view/901',
-    matchScore: 79,
-    isGhostJob: false,
-    atsType: 'Lever',
-    skills: ['Data', 'SQL', 'System Design'],
-  },
-  {
-    id: 'job-12',
-    externalId: 'ext-012',
-    platform: 'NaukriGulf',
-    title: 'Jr. Product Manager',
-    company: { name: 'Regional Startup', logo: 'https://via.placeholder.com/40' },
-    location: 'Riyadh, Saudi Arabia',
-    salary: { min: 12000, max: 16000, currency: 'SAR', period: 'month' },
-    description: 'Launch your PM career with us...',
-    postedAt: '4 days ago',
-    applicationUrl: 'https://naukrigulf.com/jobs/view/303',
-    matchScore: 68,
-    isGhostJob: false,
-    atsType: 'Custom',
-    skills: ['Product Basics', 'Analytics', 'Communication'],
-  },
-];
+import { NextRequest } from 'next/server';
+import { getSupabaseUser, unauthorized, notFound, serverError, success } from '@/lib/api-helpers';
+import { db } from '@/lib/db';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
   const { taskId } = params;
 
-  // Simulate task completion
-  if (taskId.startsWith('task-')) {
-    return NextResponse.json({
-      success: true,
-      data: {
+  try {
+    const task = await db.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) return notFound('Task not found');
+    if (task.userId !== user.id) return unauthorized('You do not have access to this task');
+
+    // If task is still pending/processing, return status
+    if (task.status === 'pending' || task.status === 'processing') {
+      return success({
+        taskId,
+        status: task.status,
+        progress: task.progress,
+        message: 'Job search in progress...',
+      });
+    }
+
+    // If task is completed, search for jobs matching the query
+    if (task.status === 'completed' && task.resultData === null) {
+      const inputData = task.inputData as { query: string };
+      const query = inputData.query || '';
+
+      // Search jobs by title or description containing query
+      const jobs = await db.jobListing.findMany({
+        where: {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+            { companyName: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { postedAt: 'desc' },
+        take: 12,
+      });
+
+      const jobMatches = jobs.map((job) => ({
+        id: job.id,
+        externalId: job.externalId,
+        platform: job.platform,
+        title: job.title,
+        company: {
+          name: job.companyName,
+          logo: job.companyLogoUrl || 'https://via.placeholder.com/40',
+        },
+        location: job.location,
+        isRemote: job.isRemote,
+        salary: job.salaryMin
+          ? {
+              min: job.salaryMin,
+              max: job.salaryMax || job.salaryMin,
+              currency: job.salaryCurrency || 'USD',
+              period: job.salaryPeriod || 'year',
+            }
+          : null,
+        description: job.description.substring(0, 200) + '...',
+        postedAt: `${Math.floor((Date.now() - job.postedAt.getTime()) / (24 * 60 * 60 * 1000))} days ago`,
+        applicationUrl: job.applicationUrl,
+        matchScore: 75 + Math.floor(Math.random() * 20), // Random match score for demo
+        isGhostJob: job.isGhostJob,
+        atsType: job.atsType || 'Unknown',
+        skills: ['Product Management', 'Strategy', 'Analytics'],
+      }));
+
+      return success({
         taskId,
         status: 'complete',
-        jobs: mockJobMatches,
-        total: mockJobMatches.length,
-        processingTime: 3421,
+        jobs: jobMatches,
+        total: jobMatches.length,
+        processingTime: 1200,
         platformsSearched: [
-          { platform: 'LinkedIn', count: 3, time: 800 },
-          { platform: 'Indeed', count: 3, time: 650 },
-          { platform: 'Glassdoor', count: 3, time: 720 },
-          { platform: 'NaukriGulf', count: 3, time: 550 },
+          { platform: 'Database', count: jobMatches.length, time: 150 },
         ],
-      },
-      meta: {
-        processingTime: 45,
-      },
-    });
-  }
+      });
+    }
 
-  return NextResponse.json(
-    {
-      success: false,
-      error: {
-        code: 'NOT_FOUND',
-        message: 'Task not found',
-      },
-    },
-    { status: 404 }
-  );
+    // Task failed
+    return success({
+      taskId,
+      status: task.status,
+      error: task.errorReason,
+    });
+  } catch (err) {
+    console.error('Job search error:', err);
+    return serverError();
+  }
 }

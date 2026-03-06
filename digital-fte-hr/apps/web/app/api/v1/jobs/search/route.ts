@@ -1,51 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
+import { NextRequest } from 'next/server';
+import { getSupabaseUser, unauthorized, badRequest, serverError, accepted } from '@/lib/api-helpers';
+import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
   try {
     const body = await request.json();
     const { query } = body;
 
     if (!query) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'query is required',
-            details: [{ field: 'query', issue: 'Required' }],
-          },
-        },
-        { status: 400 }
-      );
+      return badRequest('query is required');
     }
 
-    const taskId = `task-${randomUUID()}`;
+    // Create task in database
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const task = await db.task.create({
+      data: {
+        userId: user.id,
+        type: 'job_search',
+        status: 'processing',
+        inputData: { query },
+        expiresAt,
+      },
+    });
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          taskId,
-          status: 'queued',
-          pollUrl: `/api/v1/tasks/${taskId}`,
-        },
-        meta: {
-          processingTime: 8,
-        },
-      },
-      { status: 202 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to process search request',
-        },
-      },
-      { status: 500 }
-    );
+    return accepted({
+      taskId: task.id,
+      status: 'queued',
+      pollUrl: `/api/v1/tasks/${task.id}`,
+    });
+  } catch (err) {
+    console.error('Job search error:', err);
+    return serverError();
   }
 }

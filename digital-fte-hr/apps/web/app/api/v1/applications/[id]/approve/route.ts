@@ -1,39 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { getSupabaseUser, unauthorized, notFound, serverError, success } from '@/lib/api-helpers';
+import { db } from '@/lib/db';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
   try {
     const { id } = params;
     await request.json();
 
-    return NextResponse.json({
-      success: true,
+    // Verify user owns this application
+    const app = await db.jobApplication.findFirst({
+      where: { id, userId: user.id },
+      include: { jobListing: true },
+    });
+
+    if (!app) return notFound('Application not found');
+
+    // Update application status
+    const updated = await db.jobApplication.update({
+      where: { id },
       data: {
-        applicationId: id,
         status: 'submitted',
-        approvedAt: new Date().toISOString(),
-        submissionDetails: {
-          platform: 'LinkedIn',
-          screenshotUrl: 'https://via.placeholder.com/800x600',
-          submittedAt: new Date().toISOString(),
-        },
-      },
-      meta: {
-        processingTime: 156,
+        approvedAt: new Date(),
+        submittedAt: new Date(),
       },
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to approve application',
-        },
+
+    return success({
+      applicationId: updated.id,
+      status: updated.status,
+      approvedAt: updated.approvedAt?.toISOString(),
+      submissionDetails: {
+        platform: app.jobListing.platform,
+        screenshotUrl: 'https://via.placeholder.com/800x600',
+        submittedAt: updated.submittedAt?.toISOString(),
       },
-      { status: 500 }
-    );
+    });
+  } catch (err) {
+    console.error('Application approval error:', err);
+    return serverError();
   }
 }

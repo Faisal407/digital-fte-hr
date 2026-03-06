@@ -1,54 +1,64 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseUser, unauthorized, serverError, success } from '@/lib/api-helpers';
+import { db } from '@/lib/db';
 
-export async function GET() {
-  const weekData = [
-    { date: 'Mon', jobs: 8, applications: 2, interviews: 1 },
-    { date: 'Tue', jobs: 12, applications: 3, interviews: 0 },
-    { date: 'Wed', jobs: 15, applications: 5, interviews: 2 },
-    { date: 'Thu', jobs: 10, applications: 2, interviews: 1 },
-    { date: 'Fri', jobs: 18, applications: 4, interviews: 1 },
-    { date: 'Sat', jobs: 5, applications: 1, interviews: 0 },
-    { date: 'Sun', jobs: 3, applications: 0, interviews: 0 },
-  ];
+export async function GET(request: NextRequest) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
 
-  const topJobs = [
-    {
-      id: 'job-1',
-      title: 'Senior Product Manager',
-      company: 'Tech Corp',
-      matchScore: 92,
-      platform: 'LinkedIn',
-      postedAt: '2 days ago',
-    },
-    {
-      id: 'job-2',
-      title: 'Product Manager - Growth',
-      company: 'Startup Inc',
-      matchScore: 85,
-      platform: 'Indeed',
-      postedAt: '1 day ago',
-    },
-    {
-      id: 'job-3',
-      title: 'PM II - Backend',
-      company: 'Cloud Systems',
-      matchScore: 78,
-      platform: 'Glassdoor',
-      postedAt: '3 days ago',
-    },
-  ];
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  return NextResponse.json({
-    success: true,
-    data: {
+    const applications = await db.jobApplication.findMany({
+      where: {
+        userId: user.id,
+        createdAt: { gte: sevenDaysAgo },
+      },
+      include: {
+        jobListing: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weekData = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+
+      const dayApps = applications.filter(
+        (app) => app.createdAt >= dayStart && app.createdAt < dayEnd
+      );
+
+      weekData.push({
+        date: dayNames[date.getDay()],
+        jobs: 0,
+        applications: dayApps.length,
+        interviews: 0,
+      });
+    }
+
+    const topJobs = applications.slice(0, 3).map((app) => ({
+      id: app.jobListingId,
+      title: app.jobListing.title,
+      company: app.jobListing.companyName,
+      matchScore: app.matchScore,
+      platform: app.jobListing.platform,
+      postedAt: `${Math.floor((now.getTime() - app.jobListing.postedAt.getTime()) / (24 * 60 * 60 * 1000))} days ago`,
+    }));
+
+    return success({
       chartData: weekData,
       topJobs,
-      totalJobsThisWeek: 71,
-      totalApplicationsThisWeek: 17,
-      totalInterviewsScheduled: 5,
-    },
-    meta: {
-      processingTime: 32,
-    },
-  });
+      totalJobsThisWeek: 0,
+      totalApplicationsThisWeek: applications.length,
+      totalInterviewsScheduled: 0,
+    });
+  } catch (err) {
+    console.error('Weekly dashboard error:', err);
+    return serverError();
+  }
 }

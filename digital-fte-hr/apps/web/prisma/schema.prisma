@@ -1,0 +1,232 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// ── Users ──────────────────────────────────────────────────────
+model UserProfile {
+  id                String   @id @default(cuid())
+  supabaseId        String   @unique @map("supabase_id")
+  email             String   @unique
+  firstName         String   @map("first_name")
+  lastName          String   @map("last_name")
+  phoneE164         String?  @unique @map("phone_e164")
+  timezone          String   @default("UTC")
+  plan              PlanTier @default(free)
+  planExpiresAt     DateTime? @map("plan_expires_at")
+  status            UserStatus @default(active)
+  deletionRequestedAt DateTime? @map("deletion_requested_at")
+  preferredJobTitles String[] @map("preferred_job_titles")
+  preferredLocations String[] @map("preferred_locations")
+  salaryMin         Int?     @map("salary_min")
+  salaryMax         Int?     @map("salary_max")
+  salaryCurrency    String   @default("USD") @map("salary_currency")
+  lastActiveAt      DateTime @default(now()) @map("last_active_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  resumes            ResumeProfile[]
+  applications       JobApplication[]
+  answerMemoryBank   AnswerMemoryBank[]
+
+  @@map("user_profile")
+}
+
+// ── Resumes ────────────────────────────────────────────────────
+model ResumeProfile {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  versionNumber   Int      @map("version_number")
+  sourceType      ResumeSource @map("source_type")
+  s3KeyOriginal   String?  @map("s3_key_original")
+  s3KeyOptimized  String?  @map("s3_key_optimized")
+  s3KeyDocx       String?  @map("s3_key_docx")
+  atsScore        Int?     @map("ats_score")
+  checkpoints     Json?
+  isActive        Boolean  @default(false) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user         UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
+
+  @@unique([userId, versionNumber])
+  @@index([userId, isActive])
+  @@map("resume_profile")
+}
+
+// ── Jobs ───────────────────────────────────────────────────────
+model JobListing {
+  id              String   @id @default(cuid())
+  externalId      String   @map("external_id")
+  platform        JobPlatform
+  title           String
+  companyName     String   @map("company_name")
+  companyLogoUrl  String?  @map("company_logo_url")
+  location        String
+  isRemote        Boolean  @default(false) @map("is_remote")
+  salaryMin       Int?     @map("salary_min")
+  salaryMax       Int?     @map("salary_max")
+  salaryCurrency  String?  @map("salary_currency")
+  salaryPeriod    String?  @map("salary_period")
+  description     String
+  applicationUrl  String   @map("application_url")
+  atsType         String?  @map("ats_type")
+  isGhostJob      Boolean  @default(false) @map("is_ghost_job")
+  postedAt        DateTime @map("posted_at")
+  expiresAt       DateTime? @map("expires_at")
+  urlFingerprint  String   @unique @map("url_fingerprint")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  applications JobApplication[]
+
+  @@unique([platform, externalId])
+  @@index([platform, postedAt])
+  @@index([isGhostJob])
+  @@map("job_listing")
+}
+
+// ── Applications ───────────────────────────────────────────────
+model JobApplication {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  jobListingId      String   @map("job_listing_id")
+  resumeProfileId   String   @map("resume_profile_id")
+  status            ApplicationStatus @default(pending_review)
+  reviewToken       String?  @unique @map("review_token")
+  approvedAt        DateTime? @map("approved_at")
+  submittedAt       DateTime? @map("submitted_at")
+  skippedAt         DateTime? @map("skipped_at")
+  skipReason        String?  @map("skip_reason")
+  coverLetterText   String?  @map("cover_letter_text")
+  s3KeyPreSubmit    String?  @map("s3_key_pre_submit")
+  s3KeyConfirmation String?  @map("s3_key_confirmation")
+  failureReason     String?  @map("failure_reason")
+  matchScore        Int      @map("match_score")
+  source            String   @default("auto")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user       UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobListing JobListing   @relation(fields: [jobListingId], references: [id])
+  resume     ResumeProfile @relation(fields: [resumeProfileId], references: [id])
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("job_application")
+}
+
+// ── Tasks (async polling) ──────────────────────────────────────
+model Task {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  status      TaskStatus @default(pending)
+  type        String   // "job_search", "resume_optimize", etc.
+  inputData   Json     @map("input_data")
+  resultData  Json?    @map("result_data")
+  errorReason String?  @map("error_reason")
+  progress    Float    @default(0)  // 0-1
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("task")
+}
+
+// ── Answer Memory Bank ─────────────────────────────────────────
+model AnswerMemoryBank {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  questionHash String   @map("question_hash")
+  questionText String   @map("question_text")
+  answerText   String   @map("answer_text")
+  usageCount   Int      @default(1) @map("usage_count")
+  lastUsedAt   DateTime @default(now()) @map("last_used_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionHash])
+  @@map("answer_memory_bank")
+}
+
+// ── Enums ──────────────────────────────────────────────────────
+enum PlanTier {
+  free
+  pro
+  elite
+
+  @@map("plan_tier")
+}
+
+enum UserStatus {
+  active
+  suspended
+  deletion_pending
+  deleted
+
+  @@map("user_status")
+}
+
+enum ResumeSource {
+  upload
+  linkedin
+  form
+  voice
+
+  @@map("resume_source")
+}
+
+enum ApplicationStatus {
+  pending_review
+  approved
+  submitted
+  viewed
+  shortlisted
+  rejected
+  skipped
+  failed
+  expired
+
+  @@map("application_status")
+}
+
+enum TaskStatus {
+  pending
+  processing
+  completed
+  failed
+  expired
+
+  @@map("task_status")
+}
+
+enum JobPlatform {
+  linkedin
+  indeed
+  glassdoor
+  monster
+  naukrigulf
+  bayt
+  rozee_pk
+  naukri
+  reed_co_uk
+  totaljobs
+  stepstone
+  greenhouse
+  lever
+  workday
+  taleo
+  icims
+
+  @@map("job_platform")
+}

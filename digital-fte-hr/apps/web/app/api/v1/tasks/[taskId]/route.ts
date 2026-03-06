@@ -1,40 +1,37 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { getSupabaseUser, unauthorized, notFound, serverError, success } from '@/lib/api-helpers';
+import { db } from '@/lib/db';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
   const { taskId } = params;
 
-  // Simulate various task states based on taskId
-  if (taskId.startsWith('task-')) {
-    return NextResponse.json({
-      success: true,
-      data: {
-        taskId,
-        status: 'complete',
-        progress: 1.0,
-        result: {
-          message: 'Task completed successfully',
-          dataCount: 12,
-        },
-        createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-        completedAt: new Date().toISOString(),
-      },
-      meta: {
-        processingTime: 18,
-      },
+  try {
+    const task = await db.task.findUnique({
+      where: { id: taskId },
     });
-  }
 
-  return NextResponse.json(
-    {
-      success: false,
-      error: {
-        code: 'NOT_FOUND',
-        message: 'Task not found',
-      },
-    },
-    { status: 404 }
-  );
+    if (!task) return notFound('Task not found');
+
+    // Verify user owns this task
+    if (task.userId !== user.id) return unauthorized('You do not have access to this task');
+
+    return success({
+      taskId: task.id,
+      status: task.status,
+      progress: task.progress,
+      result: task.resultData,
+      error: task.errorReason,
+      createdAt: task.createdAt.toISOString(),
+      updatedAt: task.updatedAt.toISOString(),
+    });
+  } catch (err) {
+    console.error('Task fetch error:', err);
+    return serverError();
+  }
 }

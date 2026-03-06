@@ -19,18 +19,31 @@ export default function DashboardPage() {
   const { data: overviewData, isLoading, error } = useQuery({
     queryKey: ['dashboard-overview'],
     queryFn: async () => {
+      console.log('Starting dashboard fetch...');
+      console.log('User:', user);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
       try {
-        console.log('Fetching dashboard overview...');
-        const result = await apiClient.get('/dashboard/overview');
-        console.log('Dashboard result:', result);
-        return result;
+        const result = await fetch('/api/v1/dashboard/overview', {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        console.log('Fetch response status:', result.status);
+        const json = await result.json();
+        console.log('Dashboard data:', json);
+        return json;
       } catch (err) {
-        console.error('Dashboard error:', err);
+        clearTimeout(timeout);
+        console.error('Fetch error:', err);
         throw err;
       }
     },
     staleTime: 0,
     gcTime: 0,
+    retry: 3,
   });
 
   React.useEffect(() => {

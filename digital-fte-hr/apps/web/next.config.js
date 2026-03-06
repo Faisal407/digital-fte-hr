@@ -3,9 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
 
-  // Vercel build optimization
-  outputFileTracingIgnores: ['**/*.map'],
-
   images: {
     remotePatterns: [
       {

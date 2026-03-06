@@ -9,7 +9,6 @@ import { useAuth } from '@/app/providers/auth-provider';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { apiClient } from '@/lib/api-client';
 
 export default function DashboardPage() {
   const { user } = useAuth();

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getSupabaseUser, unauthorized, serverError, success } from '@/lib/api-helpers';
 import { db } from '@/lib/db';
 

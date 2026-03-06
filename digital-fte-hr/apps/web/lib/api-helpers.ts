@@ -39,18 +39,20 @@ export async function getSupabaseUser(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
-    const { data: supabaseUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+    const { data: supabaseUserData, error: authError } = await supabase.auth.admin.getUserById(userId);
 
-    if (authError || !supabaseUser) {
+    if (authError || !supabaseUserData) {
       return { user: null, error: { code: 'INVALID_TOKEN', message: 'User not found' } };
     }
 
+    const supabaseUser = supabaseUserData as any;
+
     // Upsert UserProfile in database
     const userData = await db.userProfile.upsert({
-      where: { supabaseId: supabaseUser.id },
+      where: { supabaseId: userId },
       update: { lastActiveAt: new Date() },
       create: {
-        supabaseId: supabaseUser.id,
+        supabaseId: userId,
         email: supabaseUser.email || '',
         firstName: supabaseUser.user_metadata?.first_name || 'User',
         lastName: supabaseUser.user_metadata?.last_name || '',
@@ -59,7 +61,7 @@ export async function getSupabaseUser(request: NextRequest) {
       },
     });
 
-    return { user: { id: userData.id, supabaseId: supabaseUser.id, email: userData.email }, error: null };
+    return { user: { id: userData.id, supabaseId: userId, email: userData.email }, error: null };
   } catch (err) {
     console.error('Auth error:', err);
     return {

@@ -44,9 +44,9 @@ export default function ResumePage() {
       const data = await response.json();
       console.log('Resume API response data:', data);
 
-      if (data.success && data.resumes) {
-        console.log('Setting variants:', data.resumes);
-        setVariants(data.resumes);
+      if (data.success && data.data && data.data.resumes) {
+        console.log('Setting variants:', data.data.resumes);
+        setVariants(data.data.resumes);
       } else if (!response.ok) {
         setMessage({ type: 'error', text: `❌ Failed to load resumes: ${data.error?.message || 'Unknown error'}` });
       }

@@ -11,6 +11,7 @@ export async function PATCH(
 
   try {
     const { id } = params;
+    console.log('Approving application:', { id, userId: user?.id });
     await request.json();
 
     // Verify user owns this application
@@ -19,9 +20,11 @@ export async function PATCH(
       include: { jobListing: true },
     });
 
+    console.log('Found application:', { appId: app?.id, status: app?.status });
     if (!app) return notFound('Application not found');
 
     // Update application status
+    console.log('Updating status to submitted');
     const updated = await db.jobApplication.update({
       where: { id },
       data: {
@@ -30,6 +33,7 @@ export async function PATCH(
         submittedAt: new Date(),
       },
     });
+    console.log('Update successful:', { updatedId: updated.id, newStatus: updated.status });
 
     return success({
       applicationId: updated.id,
@@ -43,6 +47,7 @@ export async function PATCH(
     });
   } catch (err) {
     console.error('Application approval error:', err);
-    return serverError();
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    return serverError(`Approval failed: ${errorMsg}`);
   }
 }

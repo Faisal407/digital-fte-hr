@@ -25,8 +25,21 @@ export default function DashboardPage() {
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       try {
+        // Get the session token
+        const token = await (async () => {
+          const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
+          if (auth) {
+            const parsed = JSON.parse(auth);
+            return parsed.access_token;
+          }
+          return null;
+        })();
+
+        console.log('Token:', token ? 'present' : 'missing');
+
         const result = await fetch('/api/v1/dashboard/overview', {
           signal: controller.signal,
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         });
         clearTimeout(timeout);
 

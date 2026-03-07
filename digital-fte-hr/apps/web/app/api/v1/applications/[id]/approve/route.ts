@@ -12,7 +12,12 @@ export async function PATCH(
   try {
     const { id } = params;
     console.log('Approving application:', { id, userId: user?.id });
-    await request.json();
+    // Body is optional for approve
+    try {
+      await request.json();
+    } catch {
+      // Empty body is OK
+    }
 
     // Verify user owns this application
     const app = await db.jobApplication.findFirst({

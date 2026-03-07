@@ -12,6 +12,41 @@ export default function RecommendationsPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
+
+  const handleApplyJob = async (jobId: string) => {
+    setApplyingJobId(jobId);
+
+    const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
+    const token = auth ? JSON.parse(auth).access_token : null;
+
+    try {
+      // First, create a job application
+      const response = await fetch('/api/v1/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          jobListingId: jobId,
+          resumeProfileId: 'default', // Use default resume for now
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Application created successfully!');
+        setApplyingJobId(null);
+      } else {
+        alert('❌ Failed to apply: ' + (data.error?.message || 'Unknown error'));
+        setApplyingJobId(null);
+      }
+    } catch (err) {
+      alert('❌ Error applying to job');
+      setApplyingJobId(null);
+    }
+  };
 
   // Poll for results when taskId is set
   useEffect(() => {
@@ -136,8 +171,13 @@ export default function RecommendationsPage() {
                     ${job.salaryMin.toLocaleString()} - ${job.salaryMax?.toLocaleString()}
                   </p>
                 )}
-                <Button size="sm" className="mt-3 w-full bg-primary-400 hover:bg-primary-500">
-                  View & Apply
+                <Button
+                  size="sm"
+                  className="mt-3 w-full bg-primary-400 hover:bg-primary-500"
+                  onClick={() => handleApplyJob(job.id)}
+                  disabled={applyingJobId === job.id}
+                >
+                  {applyingJobId === job.id ? 'Applying...' : 'View & Apply'}
                 </Button>
               </div>
             ))}

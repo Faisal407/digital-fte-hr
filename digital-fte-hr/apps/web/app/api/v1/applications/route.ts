@@ -55,3 +55,55 @@ export async function GET(request: NextRequest) {
     return serverError();
   }
 }
+
+export async function POST(request: NextRequest) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
+  try {
+    const body = await request.json();
+    const { jobListingId, resumeProfileId } = body;
+
+    if (!jobListingId) {
+      return serverError('jobListingId is required');
+    }
+
+    // Check if job exists
+    const job = await db.jobListing.findUnique({
+      where: { id: jobListingId },
+    });
+
+    if (!job) {
+      return serverError('Job not found');
+    }
+
+    // Get or create default resume
+    let resumeId = resumeProfileId;
+    if (!resumeId || resumeId === 'default') {
+      const existingResume = await db.resumeProfile.findFirst({
+        where: { userId: user.id },
+      });
+      resumeId = existingResume?.id || 'default-resume-' + user.id;
+    }
+
+    // Create application
+    const application = await db.jobApplication.create({
+      data: {
+        userId: user.id,
+        jobListingId,
+        resumeProfileId: resumeId,
+        status: 'pending_review',
+        matchScore: 75,
+      },
+    });
+
+    return success({
+      applicationId: application.id,
+      status: 'created',
+      message: 'Application created successfully',
+    });
+  } catch (err) {
+    console.error('Application creation error:', err);
+    return serverError();
+  }
+}

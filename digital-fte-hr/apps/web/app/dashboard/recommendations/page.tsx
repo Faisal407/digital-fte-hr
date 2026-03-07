@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,8 @@ export default function RecommendationsPage() {
   };
 
   // Poll for results when taskId is set
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (!taskId) return;
 
@@ -89,19 +91,38 @@ export default function RecommendationsPage() {
       const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
       const token = auth ? JSON.parse(auth).access_token : null;
 
-      const response = await fetch(`/api/v1/jobs/search/${taskId}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      });
-      const data = await response.json();
+      try {
+        const response = await fetch(`/api/v1/jobs/search/${taskId}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        });
+        const data = await response.json();
 
-      if (data.success && data.data?.jobs) {
-        setJobs(data.data.jobs);
-        setIsSearching(false);
+        if (data.success && data.data?.jobs) {
+          setJobs(data.data.jobs);
+          setIsSearching(false);
+          // Stop polling once results received
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+        }
+      } catch (err) {
+        console.error('Poll error:', err);
       }
     };
 
-    const interval = setInterval(pollResults, 1500);
-    return () => clearInterval(interval);
+    // Poll immediately first
+    pollResults();
+
+    // Then poll every 1.5 seconds as fallback (in case results not ready)
+    intervalRef.current = setInterval(pollResults, 1500);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [taskId]);
 
   const handleSearch = async (e: React.FormEvent) => {

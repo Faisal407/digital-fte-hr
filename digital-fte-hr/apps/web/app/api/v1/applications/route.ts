@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { jobListingId, resumeProfileId } = body;
+    const { jobListingId } = body;
 
     if (!jobListingId) {
       return serverError('jobListingId is required');
@@ -77,13 +77,33 @@ export async function POST(request: NextRequest) {
       return serverError('Job not found');
     }
 
-    // Get or create default resume
-    let resumeId = resumeProfileId;
-    if (!resumeId || resumeId === 'default') {
-      const existingResume = await db.resumeProfile.findFirst({
-        where: { userId: user.id },
+    // Get or create default resume for user
+    let resume = await db.resumeProfile.findFirst({
+      where: { userId: user.id, isActive: true },
+    });
+
+    // If no active resume, create one
+    if (!resume) {
+      resume = await db.resumeProfile.create({
+        data: {
+          userId: user.id,
+          versionNumber: 1,
+          sourceType: 'form',
+          isActive: true,
+        },
       });
-      resumeId = existingResume?.id || 'default-resume-' + user.id;
+    }
+
+    // Check if already applied
+    const existing = await db.jobApplication.findFirst({
+      where: {
+        userId: user.id,
+        jobListingId,
+      },
+    });
+
+    if (existing) {
+      return serverError('Already applied to this job');
     }
 
     // Create application
@@ -91,7 +111,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         jobListingId,
-        resumeProfileId: resumeId,
+        resumeProfileId: resume.id,
         status: 'pending_review',
         matchScore: 75,
       },

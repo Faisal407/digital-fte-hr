@@ -108,7 +108,7 @@ export default function ApplicationsPage() {
       {/* Applications List */}
       {!isLoading && applications.length > 0 && (
         <div className="space-y-4">
-          {applications.map((app) => {
+          {applications.map((app: any) => {
             const statusColors: Record<string, string> = {
               pending_review: 'bg-yellow-100 text-yellow-800',
               submitted: 'bg-blue-100 text-blue-800',

@@ -29,16 +29,6 @@ model UserProfile {
   salaryMax         Int?     @map("salary_max")
   salaryCurrency    String   @default("USD") @map("salary_currency")
   lastActiveAt      DateTime @default(now()) @map("last_active_at")
-
-  // Channel settings
-  whatsappPhone     String?  @map("whatsapp_phone")
-  whatsappVerified  Boolean  @default(false) @map("whatsapp_verified")
-  telegramBotName   String?  @map("telegram_bot_name")
-  telegramVerified  Boolean  @default(false) @map("telegram_verified")
-
-  // Notification preferences (stored as JSON)
-  notificationPrefs Json?    @map("notification_prefs")
-
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 

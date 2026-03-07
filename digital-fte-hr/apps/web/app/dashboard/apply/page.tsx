@@ -42,9 +42,12 @@ export default function ApplicationsPage() {
         },
         body: JSON.stringify({ reason: 'user_skipped' }),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         alert('✅ Application skipped');
         setRefreshCount(c => c + 1);
+      } else {
+        alert('❌ Failed to skip: ' + (data.error?.message || 'Unknown error'));
       }
     } catch (err) {
       alert('❌ Error skipping application');
@@ -63,9 +66,12 @@ export default function ApplicationsPage() {
           'Content-Type': 'application/json',
         },
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         alert('✅ Application approved and submitted');
         setRefreshCount(c => c + 1);
+      } else {
+        alert('❌ Failed to approve: ' + (data.error?.message || 'Unknown error'));
       }
     } catch (err) {
       alert('❌ Error approving application');

@@ -33,13 +33,22 @@ export default function ResumePage() {
       const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
       const token = auth ? JSON.parse(auth).access_token : null;
 
+      console.log('Loading resumes, token exists:', !!token);
+
       const response = await fetch('/api/v1/resumes', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
 
+      console.log('Resume API response status:', response.status);
+
       const data = await response.json();
+      console.log('Resume API response data:', data);
+
       if (data.success && data.resumes) {
+        console.log('Setting variants:', data.resumes);
         setVariants(data.resumes);
+      } else if (!response.ok) {
+        setMessage({ type: 'error', text: `❌ Failed to load resumes: ${data.error?.message || 'Unknown error'}` });
       }
     } catch (err) {
       console.error('Failed to load resumes:', err);
@@ -66,6 +75,9 @@ export default function ResumePage() {
       const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
       const token = auth ? JSON.parse(auth).access_token : null;
 
+      console.log('Uploading resume, token exists:', !!token);
+      console.log('File:', file.name, file.type, file.size);
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -75,14 +87,20 @@ export default function ResumePage() {
         body: formData,
       });
 
+      console.log('Upload response status:', response.status);
+
       const data = await response.json();
+      console.log('Upload response data:', data);
 
       if (data.success || response.status === 202) {
-        setMessage({ type: 'success', text: '✅ Resume uploaded successfully!' });
+        setMessage({ type: 'success', text: '✅ Resume uploaded successfully! Loading...' });
+        // Add small delay to ensure backend has committed
+        await new Promise(resolve => setTimeout(resolve, 500));
         // Reload resumes
         await loadResumes();
+        setMessage({ type: 'success', text: '✅ Resume uploaded and loaded!' });
       } else {
-        setMessage({ type: 'error', text: '❌ Failed to upload resume' });
+        setMessage({ type: 'error', text: `❌ Failed to upload resume: ${data.error?.message || 'Unknown error'}` });
       }
     } catch (err) {
       console.error('Upload error:', err);

@@ -7,10 +7,14 @@ export async function GET(request: NextRequest) {
   if (error) return unauthorized(error.message);
 
   try {
+    console.log('Fetching resumes for user:', user.id);
+
     const resumes = await db.resumeProfile.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
     });
+
+    console.log('Found resumes:', resumes.length);
 
     const activeResume = resumes.find((r) => r.isActive);
 
@@ -46,8 +50,12 @@ export async function POST(request: NextRequest) {
   if (error) return unauthorized(error.message);
 
   try {
+    console.log('Uploading resume for user:', user.id);
+
     const formData = await request.formData();
     const file = formData.get('file');
+
+    console.log('File received:', file ? 'yes' : 'no', file instanceof File);
 
     if (!file) {
       return badRequest('file is required');
@@ -60,6 +68,7 @@ export async function POST(request: NextRequest) {
     });
 
     const nextVersion = (lastResume?.versionNumber || 0) + 1;
+    console.log('Next version number:', nextVersion);
 
     // Create resume record
     const newResume = await db.resumeProfile.create({
@@ -71,6 +80,8 @@ export async function POST(request: NextRequest) {
         isActive: false,
       },
     });
+
+    console.log('Resume created:', newResume.id);
 
     return accepted({
       resume: {

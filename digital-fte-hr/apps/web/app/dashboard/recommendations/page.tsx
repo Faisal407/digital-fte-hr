@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
@@ -13,6 +14,28 @@ export default function RecommendationsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
+
+  // Fetch applications count
+  const { data: applicationsData } = useQuery({
+    queryKey: ['recommendations-applications', refreshCount],
+    queryFn: async () => {
+      const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
+      const token = auth ? JSON.parse(auth).access_token : null;
+      const res = await fetch('/api/v1/applications', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
+      return res.json();
+    },
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  const applications = applicationsData?.data?.applications || [];
+  const appliedCount = applications.length;
+  const avgMatchScore = applications.length > 0
+    ? Math.round(applications.reduce((sum: number, app: any) => sum + (app.matchScore || 0), 0) / applications.length)
+    : 0;
 
   const handleApplyJob = async (jobId: string) => {
     setApplyingJobId(jobId);
@@ -38,6 +61,8 @@ export default function RecommendationsPage() {
       if (data.success) {
         alert('✅ Application created successfully!');
         setApplyingJobId(null);
+        // Refetch applications count
+        setRefreshCount(c => c + 1);
       } else {
         alert('❌ Failed to apply: ' + (data.error?.message || 'Unknown error'));
         setApplyingJobId(null);
@@ -194,12 +219,12 @@ export default function RecommendationsPage() {
         />
         <DashboardCard
           title="Applied"
-          value="0"
+          value={appliedCount.toString()}
           icon="✅"
         />
         <DashboardCard
           title="Avg Match Score"
-          value="0%"
+          value={`${avgMatchScore}%`}
           icon="⭐"
         />
       </div>

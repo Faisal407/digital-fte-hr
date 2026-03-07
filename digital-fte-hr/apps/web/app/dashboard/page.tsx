@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
   const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'User';
 
-  const { data: overviewData, isLoading, error } = useQuery({
+  const { data: overviewData, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard-overview'],
     queryFn: async () => {
       console.log('Starting dashboard fetch...');
@@ -61,6 +61,23 @@ export default function DashboardPage() {
   React.useEffect(() => {
     if (error) console.error('Query error:', error);
   }, [error]);
+
+  // Refetch when page gains focus (user returns from other pages)
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', () => refetch());
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', () => refetch());
+    };
+  }, [refetch]);
 
   const overview = (overviewData?.data && typeof overviewData.data === 'object')
     ? (overviewData.data as any)

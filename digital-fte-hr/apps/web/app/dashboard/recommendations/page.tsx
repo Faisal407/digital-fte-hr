@@ -135,13 +135,6 @@ export default function RecommendationsPage() {
     const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
     const token = auth ? JSON.parse(auth).access_token : null;
 
-    // Build search query with filters
-    let searchStr = searchQuery;
-    if (filters.remote) searchStr += ' remote';
-    if (filters.fullTime) searchStr += ' full-time';
-    if (filters.last7Days) searchStr += ' last 7 days';
-    if (filters.salary100k) searchStr += ' $100k+';
-
     const response = await fetch('/api/v1/jobs/search', {
       method: 'POST',
       headers: {
@@ -149,7 +142,7 @@ export default function RecommendationsPage() {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
-        query: searchStr,
+        query: searchQuery,
         filters: {
           isRemote: filters.remote,
           jobType: filters.fullTime ? 'full-time' : undefined,

@@ -8,24 +8,63 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { query } = body;
+    const { query, filters } = body;
 
     if (!query) {
       return badRequest('query is required');
     }
 
-    // Search for matching jobs immediately
-    const jobs = await db.jobListing.findMany({
-      where: {
+    console.log('Job search:', { query, filters });
+
+    // Build WHERE clause with filters
+    const whereConditions: any[] = [
+      { title: { contains: query, mode: 'insensitive' } },
+      { description: { contains: query, mode: 'insensitive' } },
+      { companyName: { contains: query, mode: 'insensitive' } },
+    ];
+
+    const andConditions: any[] = [
+      { OR: whereConditions }
+    ];
+
+    // Apply optional filters
+    if (filters?.isRemote) {
+      andConditions.push({ isRemote: true });
+    }
+
+    if (filters?.jobType) {
+      // Would need a jobType field in schema - for now skip
+    }
+
+    if (filters?.salaryMin) {
+      andConditions.push({
         OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-          { companyName: { contains: query, mode: 'insensitive' } },
-        ],
-      },
+          { salaryMin: { gte: filters.salaryMin } },
+          { salaryMax: { gte: filters.salaryMin } }
+        ]
+      });
+    }
+
+    if (filters?.datePosted) {
+      const daysAgo = filters.datePosted === '7d' ? 7 : 30;
+      const cutoffDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+      andConditions.push({ postedAt: { gte: cutoffDate } });
+    }
+
+    // Search for matching jobs immediately
+    const searchWhere = andConditions.length > 1
+      ? { AND: andConditions }
+      : andConditions[0];
+
+    console.log('Search where:', JSON.stringify(searchWhere, null, 2));
+
+    const jobs = await db.jobListing.findMany({
+      where: searchWhere,
       orderBy: { postedAt: 'desc' },
       take: 12,
     });
+
+    console.log('Found jobs:', jobs.length);
 
     // Create task with results
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours

@@ -57,7 +57,22 @@
       "WebFetch(domain:jobright.ai)",
       "Bash(D:/digital-fte-hr/BUILD_CHECKLIST.md:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Bash(test:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:ihatemyself%407@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\" pnpm dlx:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:ihatemyself%407@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:ihatemyself%407@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\" POSTGRES_URL_NON_POOLING=\"postgresql://postgres:ihatemyself%407@db.wtjupktgosmtizkxlita.supabase.co:5432/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:ihatemyselg%098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\" POSTGRES_URL_NON_POOLING=\"postgresql://postgres:ihatemyselg%098@db.wtjupktgosmtizkxlita.supabase.co:5432/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:ihatemyself%098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\" POSTGRES_URL_NON_POOLING=\"postgresql://postgres:ihatemyself%098@db.wtjupktgosmtizkxlita.supabase.co:5432/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" POSTGRES_URL_NON_POOLING=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself098@db.wtjupktgosmtizkxlita.supabase.co:5432/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" POSTGRES_URL_NON_POOLING=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:ihatemyself098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" POSTGRES_URL_NON_POOLING=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself098@db.wtjupktgosmtizkxlita.supabase.co:5432/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:ihatemyself098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself%098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres.wtjupktgosmtizkxlita:ihatemyself%098@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?schema=public\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres.wtjupktgosmtizkxlita:fiscalyear2602@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" pnpm exec:*)",
+      "Bash(POSTGRES_PRISMA_URL=\"postgresql://postgres:fiscalyear2602@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres\" pnpm exec:*)"
     ]
   }
 }

@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { JobMatchCard } from '@/components/jobs/JobMatchCard';
-import { apiClient } from '@/lib/api-client';
 
 export default function JobSearchPage() {
   const [query, setQuery] = useState('');
@@ -20,9 +19,21 @@ export default function JobSearchPage() {
   // Mutation to start job search
   const searchMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post('/jobs/search', { query, location });
-      if (response.success && response.data && typeof response.data === 'object' && 'taskId' in response.data) {
-        return (response.data as { taskId: string }).taskId;
+      const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
+      const token = auth ? JSON.parse(auth).access_token : null;
+
+      const response = await fetch('/api/v1/jobs/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ query, location }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.data && 'taskId' in data.data) {
+        return data.data.taskId;
       }
       throw new Error('Search failed');
     },
@@ -34,7 +45,16 @@ export default function JobSearchPage() {
   // Query to poll search results
   const { data: searchResults, isLoading: isLoadingResults } = useQuery({
     queryKey: ['jobSearch', taskId],
-    queryFn: () => (taskId ? apiClient.get(`/jobs/search/${taskId}`) : Promise.resolve(null)),
+    queryFn: async () => {
+      if (!taskId) return null;
+      const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
+      const token = auth ? JSON.parse(auth).access_token : null;
+
+      const response = await fetch(`/api/v1/jobs/search/${taskId}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
+      return response.json();
+    },
     enabled: !!taskId,
     refetchInterval: 2000,
   });

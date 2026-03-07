@@ -34,6 +34,14 @@ export default function ChannelsPage() {
   useEffect(() => {
     const loadChannels = async () => {
       try {
+        // First try to load from localStorage (persistent within same device)
+        const savedChannels = localStorage.getItem('channels-settings');
+        if (savedChannels) {
+          setChannels(JSON.parse(savedChannels));
+          setIsLoading(false);
+          return;
+        }
+
         const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
         const token = auth ? JSON.parse(auth).access_token : null;
 
@@ -44,6 +52,8 @@ export default function ChannelsPage() {
         const data = await response.json();
         if (data.success && data.channels) {
           setChannels(data.channels);
+          // Save to localStorage for persistence
+          localStorage.setItem('channels-settings', JSON.stringify(data.channels));
         }
       } catch (err) {
         console.error('Failed to load channels:', err);
@@ -84,10 +94,12 @@ export default function ChannelsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setChannels((prev) => ({
-          ...prev,
+        const updated = {
+          ...channels,
           whatsapp: { connected: true, phoneNumber: whatsappPhone, verified: true },
-        }));
+        };
+        setChannels(updated);
+        localStorage.setItem('channels-settings', JSON.stringify(updated));
         setWhatsappPhone('');
         setShowWhatsAppForm(false);
         setMessage({ type: 'success', text: '✅ WhatsApp connected successfully!' });
@@ -131,10 +143,12 @@ export default function ChannelsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setChannels((prev) => ({
-          ...prev,
+        const updated = {
+          ...channels,
           telegram: { connected: true, botName: telegramBot, verified: true },
-        }));
+        };
+        setChannels(updated);
+        localStorage.setItem('channels-settings', JSON.stringify(updated));
         setTelegramBot('');
         setShowTelegramForm(false);
         setMessage({ type: 'success', text: '✅ Telegram connected successfully!' });
@@ -172,10 +186,12 @@ export default function ChannelsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setChannels((prev) => ({
-          ...prev,
-          [channel]: { ...(prev[channel as keyof typeof prev] || {}), connected: false, verified: false },
-        }));
+        const updated = {
+          ...channels,
+          [channel]: { ...(channels[channel as keyof typeof channels] || {}), connected: false, verified: false },
+        };
+        setChannels(updated);
+        localStorage.setItem('channels-settings', JSON.stringify(updated));
         setMessage({ type: 'success', text: `✅ ${channel} disconnected` });
       }
     } catch (err) {

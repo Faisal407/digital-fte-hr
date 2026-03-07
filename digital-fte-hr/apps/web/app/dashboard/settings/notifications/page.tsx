@@ -36,6 +36,31 @@ export default function NotificationsPage() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
+        // Try to load from localStorage first (persistent within same device)
+        const savedPrefs = localStorage.getItem('notifications-settings');
+        if (savedPrefs) {
+          const prefs = JSON.parse(savedPrefs);
+          setNotifications({
+            jobAlerts: prefs.jobAlerts,
+            applicationStatus: prefs.applicationStatus,
+            weeklyReport: prefs.weeklyReport,
+            matchAlerts: prefs.matchAlerts,
+          });
+          setFrequencies({
+            jobAlerts: prefs.jobAlertsFrequency,
+            applicationStatus: prefs.applicationStatusFrequency,
+            weeklyReport: prefs.weeklyReportFrequency,
+            matchAlerts: prefs.matchAlertsFrequency,
+          });
+          setQuietHours({
+            enabled: prefs.quietHoursEnabled,
+            startTime: prefs.quietHoursStart,
+            endTime: prefs.quietHoursEnd,
+          });
+          setIsLoading(false);
+          return;
+        }
+
         const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
         const token = auth ? JSON.parse(auth).access_token : null;
 
@@ -63,6 +88,8 @@ export default function NotificationsPage() {
             startTime: prefs.quietHoursStart,
             endTime: prefs.quietHoursEnd,
           });
+          // Save to localStorage for persistence
+          localStorage.setItem('notifications-settings', JSON.stringify(prefs));
         }
       } catch (err) {
         console.error('Failed to load preferences:', err);
@@ -119,6 +146,21 @@ export default function NotificationsPage() {
       const data = await response.json();
 
       if (data.success) {
+        // Save to localStorage for persistence
+        const prefsToSave = {
+          jobAlerts: notifications.jobAlerts,
+          applicationStatus: notifications.applicationStatus,
+          weeklyReport: notifications.weeklyReport,
+          matchAlerts: notifications.matchAlerts,
+          jobAlertsFrequency: frequencies.jobAlerts,
+          applicationStatusFrequency: frequencies.applicationStatus,
+          weeklyReportFrequency: frequencies.weeklyReport,
+          matchAlertsFrequency: frequencies.matchAlerts,
+          quietHoursEnabled: quietHours.enabled,
+          quietHoursStart: quietHours.startTime,
+          quietHoursEnd: quietHours.endTime,
+        };
+        localStorage.setItem('notifications-settings', JSON.stringify(prefsToSave));
         setMessage({ type: 'success', text: '✅ Notification preferences saved!' });
       } else {
         setMessage({ type: 'error', text: '❌ Failed to save preferences' });

@@ -6,64 +6,115 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/app/providers/auth-provider';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface ProfileData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  timezone: string;
+}
+
+const defaultProfile: ProfileData = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  timezone: 'UTC',
+};
 
 export default function SettingsPage() {
   const { user } = useAuth();
 
-  const userMetadata = user?.user_metadata || {};
-  const [formData, setFormData] = useState({
-    firstName: userMetadata.first_name || '',
-    lastName: userMetadata.last_name || '',
-    email: user?.email || '',
-    phone: userMetadata.phone || '',
-    timezone: userMetadata.timezone || 'UTC',
-  });
-
+  const [formData, setFormData] = useState<ProfileData>(defaultProfile);
+  const [originalData, setOriginalData] = useState<ProfileData>(defaultProfile);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [hasChanges, setHasChanges] = useState(false);
 
-  // Load user data on mount
+  // Check if form has unsaved changes
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+  // Load user profile on mount
   useEffect(() => {
-    if (user?.email) {
-      const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
-      const token = auth ? JSON.parse(auth).access_token : null;
+    const loadProfile = async () => {
+      if (!user?.email) {
+        setIsLoading(false);
+        return;
+      }
 
-      // Fetch current profile data from API
-      fetch('/api/v1/account/profile', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.success && data.data?.profile) {
-            const profile = data.data.profile;
-            setFormData({
-              firstName: profile.firstName || '',
-              lastName: profile.lastName || '',
-              email: profile.email || '',
-              phone: profile.phone || '',
-              timezone: profile.timezone || 'UTC',
-            });
-          }
-        })
-        .catch(err => console.error('Failed to load profile:', err));
-    }
+      try {
+        const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
+        const token = auth ? JSON.parse(auth).access_token : null;
+
+        console.log('Fetching profile for user:', user.email);
+
+        const response = await fetch('/api/v1/account/profile', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        });
+
+        const data = await response.json();
+        console.log('Profile response:', data);
+
+        if (data.success && data.data?.profile) {
+          const profile = data.data.profile;
+          const profileData: ProfileData = {
+            firstName: profile.firstName || '',
+            lastName: profile.lastName || '',
+            email: profile.email || user.email || '',
+            phone: profile.phone || '',
+            timezone: profile.timezone || 'UTC',
+          };
+          console.log('Loaded profile:', profileData);
+          setFormData(profileData);
+          setOriginalData(profileData);
+        } else {
+          // Set default with user email
+          const defaultData: ProfileData = {
+            ...defaultProfile,
+            email: user.email || '',
+          };
+          setFormData(defaultData);
+          setOriginalData(defaultData);
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+        const defaultData: ProfileData = {
+          ...defaultProfile,
+          email: user?.email || '',
+        };
+        setFormData(defaultData);
+        setOriginalData(defaultData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
   }, [user?.email]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    console.log(`Field changed: ${name} = ${value}`);
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setHasChanges(true);
     setMessage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasChanges) {
+      console.log('No changes to save');
+      return;
+    }
+
     setIsSaving(true);
     setMessage(null);
 
     const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
     const token = auth ? JSON.parse(auth).access_token : null;
+
+    console.log('Saving profile:', formData);
 
     try {
       const response = await fetch('/api/v1/account/profile', {
@@ -81,10 +132,11 @@ export default function SettingsPage() {
       });
 
       const data = await response.json();
+      console.log('Save response:', data);
 
       if (data.success) {
         setMessage({ type: 'success', text: '✅ Profile updated successfully!' });
-        setHasChanges(false);
+        setOriginalData(formData);
       } else {
         setMessage({
           type: 'error',
@@ -92,11 +144,27 @@ export default function SettingsPage() {
         });
       }
     } catch (err) {
+      console.error('Save error:', err);
       setMessage({ type: 'error', text: '❌ Error saving profile' });
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-4xl font-bold text-gray-900">Settings ⚙️</h1>
+          <p className="mt-2 text-gray-600">Manage your account and preferences</p>
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-32" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -126,11 +194,13 @@ export default function SettingsPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
 
         {message && (
-          <div className={`mb-6 rounded-lg p-4 ${
-            message.type === 'success'
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
+          <div
+            className={`mb-6 rounded-lg p-4 ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}
+          >
             {message.text}
           </div>
         )}
@@ -211,16 +281,18 @@ export default function SettingsPage() {
             </select>
           </div>
 
-          <div className="border-t border-gray-200 pt-6">
+          <div className="border-t border-gray-200 pt-6 flex gap-3">
             <Button
               type="submit"
               disabled={isSaving || !hasChanges}
               className="bg-primary-400 hover:bg-primary-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? 'Saving...' : hasChanges ? 'Save Changes' : 'No Changes'}
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
-            {!hasChanges && message?.type === 'success' && (
-              <p className="mt-2 text-sm text-green-700">All changes have been saved.</p>
+            {!hasChanges && (
+              <Button type="button" variant="outline" disabled>
+                No unsaved changes
+              </Button>
             )}
           </div>
         </form>
@@ -232,10 +304,7 @@ export default function SettingsPage() {
         <p className="mt-2 text-sm text-red-800">
           These actions cannot be undone. Please be careful.
         </p>
-        <Button
-          variant="outline"
-          className="mt-4 border-red-300 text-red-600 hover:bg-red-100"
-        >
+        <Button variant="outline" className="mt-4 border-red-300 text-red-600 hover:bg-red-100">
           Delete Account
         </Button>
       </div>

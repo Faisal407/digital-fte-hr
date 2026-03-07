@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
         where: { userId: user.id },
       }),
       db.jobApplication.count({
-        where: { userId: user.id, status: 'submitted' },
+        where: {
+          userId: user.id,
+          status: { in: ['pending_review', 'approved', 'submitted', 'viewed', 'shortlisted'] }
+        },
       }),
     ]);
 

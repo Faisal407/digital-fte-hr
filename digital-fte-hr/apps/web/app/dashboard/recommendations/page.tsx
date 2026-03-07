@@ -16,6 +16,14 @@ export default function RecommendationsPage() {
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
 
+  // Filter state
+  const [filters, setFilters] = useState({
+    remote: false,
+    fullTime: false,
+    last7Days: false,
+    salary100k: false,
+  });
+
   // Fetch applications count
   const { data: applicationsData } = useQuery({
     queryKey: ['recommendations-applications', refreshCount],
@@ -106,13 +114,28 @@ export default function RecommendationsPage() {
     const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
     const token = auth ? JSON.parse(auth).access_token : null;
 
+    // Build search query with filters
+    let searchStr = searchQuery;
+    if (filters.remote) searchStr += ' remote';
+    if (filters.fullTime) searchStr += ' full-time';
+    if (filters.last7Days) searchStr += ' last 7 days';
+    if (filters.salary100k) searchStr += ' $100k+';
+
     const response = await fetch('/api/v1/jobs/search', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ query: searchQuery }),
+      body: JSON.stringify({
+        query: searchStr,
+        filters: {
+          isRemote: filters.remote,
+          jobType: filters.fullTime ? 'full-time' : undefined,
+          datePosted: filters.last7Days ? '7d' : undefined,
+          salaryMin: filters.salary100k ? 100000 : undefined,
+        }
+      }),
     });
 
     const data = await response.json();
@@ -152,17 +175,45 @@ export default function RecommendationsPage() {
 
         {/* Filters */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <button className="rounded-full border border-gray-300 px-4 py-2 text-sm hover:border-primary-400 transition-colors">
-            Remote
+          <button
+            onClick={() => setFilters(f => ({ ...f, remote: !f.remote }))}
+            className={`rounded-full px-4 py-2 text-sm transition-colors ${
+              filters.remote
+                ? 'bg-primary-400 text-white border-primary-400'
+                : 'border border-gray-300 hover:border-primary-400'
+            }`}
+          >
+            🌍 Remote
           </button>
-          <button className="rounded-full border border-gray-300 px-4 py-2 text-sm hover:border-primary-400 transition-colors">
-            Full-time
+          <button
+            onClick={() => setFilters(f => ({ ...f, fullTime: !f.fullTime }))}
+            className={`rounded-full px-4 py-2 text-sm transition-colors ${
+              filters.fullTime
+                ? 'bg-primary-400 text-white border-primary-400'
+                : 'border border-gray-300 hover:border-primary-400'
+            }`}
+          >
+            💼 Full-time
           </button>
-          <button className="rounded-full border border-gray-300 px-4 py-2 text-sm hover:border-primary-400 transition-colors">
-            Last 7 days
+          <button
+            onClick={() => setFilters(f => ({ ...f, last7Days: !f.last7Days }))}
+            className={`rounded-full px-4 py-2 text-sm transition-colors ${
+              filters.last7Days
+                ? 'bg-primary-400 text-white border-primary-400'
+                : 'border border-gray-300 hover:border-primary-400'
+            }`}
+          >
+            📅 Last 7 days
           </button>
-          <button className="rounded-full border border-gray-300 px-4 py-2 text-sm hover:border-primary-400 transition-colors">
-            $100k+
+          <button
+            onClick={() => setFilters(f => ({ ...f, salary100k: !f.salary100k }))}
+            className={`rounded-full px-4 py-2 text-sm transition-colors ${
+              filters.salary100k
+                ? 'bg-primary-400 text-white border-primary-400'
+                : 'border border-gray-300 hover:border-primary-400'
+            }`}
+          >
+            💰 $100k+
           </button>
         </div>
       </div>

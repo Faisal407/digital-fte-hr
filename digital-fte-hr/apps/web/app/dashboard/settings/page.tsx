@@ -1,19 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('profile');
+  const pathname = usePathname();
+
+  // Detect active tab from URL
+  let activeTab = 'profile';
+  if (pathname.includes('notifications')) activeTab = 'notifications';
+  else if (pathname.includes('channels')) activeTab = 'channels';
+  else if (pathname.includes('billing')) activeTab = 'billing';
 
   const tabs = [
     { id: 'profile', label: 'Profile', href: '/dashboard/settings/profile' },
     { id: 'notifications', label: 'Notifications', href: '/dashboard/settings/notifications' },
     { id: 'channels', label: 'Channels', href: '/dashboard/settings/channels' },
-    { id: 'billing', label: 'Billing' },
+    { id: 'billing', label: 'Billing', href: '/dashboard/settings/billing' },
   ];
 
   return (
@@ -27,28 +33,20 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <div className="flex gap-1">
+        <div className="flex gap-0">
           {tabs.map((tab) => (
-            tab.href ? (
-              <Link key={tab.id} href={tab.href}>
-                <Button
-                  variant={activeTab === tab.id ? 'default' : 'ghost'}
-                  className="rounded-none border-b-2 border-transparent hover:border-[#00F0A0] px-4 py-2 text-sm font-medium"
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                </Button>
-              </Link>
-            ) : (
+            <Link key={tab.id} href={tab.href} className="no-underline">
               <Button
-                key={tab.id}
-                variant={activeTab === tab.id ? 'default' : 'ghost'}
-                className="rounded-none border-b-2 border-transparent hover:border-[#00F0A0] px-4 py-2 text-sm font-medium"
-                onClick={() => setActiveTab(tab.id)}
+                variant="ghost"
+                className={`rounded-none border-b-2 px-4 py-2 text-sm font-medium transition-all ${
+                  activeTab === tab.id
+                    ? 'border-[#00F0A0] text-gray-900 bg-green-50'
+                    : 'border-transparent text-gray-600 hover:border-[#00F0A0]'
+                }`}
               >
                 {tab.label}
               </Button>
-            )
+            </Link>
           ))}
         </div>
       </div>

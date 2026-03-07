@@ -2,6 +2,36 @@ import { NextRequest } from 'next/server';
 import { getSupabaseUser, unauthorized, serverError, success } from '@/lib/api-helpers';
 import { db } from '@/lib/db';
 
+export async function GET(request: NextRequest) {
+  const { user, error } = await getSupabaseUser(request);
+  if (error) return unauthorized(error.message);
+
+  try {
+    const profile = await db.userProfile.findUnique({
+      where: { id: user.id },
+    });
+
+    if (!profile) {
+      return success({ profile: null });
+    }
+
+    return success({
+      profile: {
+        id: profile.id,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email,
+        phone: profile.phoneE164,
+        timezone: profile.timezone,
+        plan: profile.plan,
+      },
+    });
+  } catch (err) {
+    console.error('Profile fetch error:', err);
+    return serverError();
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   const { user, error } = await getSupabaseUser(request);
   if (error) return unauthorized(error.message);

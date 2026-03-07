@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ApplicationsPage() {
   const [refreshCount, setRefreshCount] = useState(0);
+  const [selectedFilter, setSelectedFilter] = useState('All');
 
   // Fetch applications from API
   const { data: applicationsData, isLoading } = useQuery({
@@ -28,6 +29,19 @@ export default function ApplicationsPage() {
 
   const applications = applicationsData?.data?.applications || [];
   const stats = applicationsData?.data?.stats || {};
+
+  // Filter applications based on selected status
+  const filteredApplications = applications.filter((app: any) => {
+    if (selectedFilter === 'All') return true;
+    const statusMap: Record<string, string> = {
+      'Pending Review': 'pending_review',
+      'Submitted': 'submitted',
+      'Viewed': 'viewed',
+      'Shortlisted': 'shortlisted',
+      'Rejected': 'rejected',
+    };
+    return app.status === statusMap[selectedFilter];
+  });
 
   const handleSkipApplication = async (appId: string) => {
     const auth = localStorage.getItem('sb-wtjupktgosmtizkxlita-auth-token');
@@ -115,7 +129,8 @@ export default function ApplicationsPage() {
       {/* Applications List */}
       {!isLoading && applications.length > 0 && (
         <div className="space-y-4">
-          {applications.map((app: any) => {
+          {filteredApplications.length > 0 ? (
+            filteredApplications.map((app: any) => {
             const statusColors: Record<string, string> = {
               pending_review: 'bg-yellow-100 text-yellow-800',
               submitted: 'bg-blue-100 text-blue-800',
@@ -168,7 +183,12 @@ export default function ApplicationsPage() {
                 )}
               </div>
             );
-          })}
+            })
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No applications match this filter</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -191,7 +211,12 @@ export default function ApplicationsPage() {
           {['All', 'Pending Review', 'Submitted', 'Viewed', 'Shortlisted', 'Rejected'].map((status) => (
             <button
               key={status}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm hover:border-primary-400 hover:bg-primary-50 transition-colors"
+              onClick={() => setSelectedFilter(status)}
+              className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                selectedFilter === status
+                  ? 'border-primary-400 bg-primary-400 text-white font-semibold'
+                  : 'border border-gray-300 hover:border-primary-400 hover:bg-primary-50'
+              }`}
             >
               {status}
             </button>

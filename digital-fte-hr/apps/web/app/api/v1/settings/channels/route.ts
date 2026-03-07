@@ -14,14 +14,14 @@ export async function GET(request: NextRequest) {
     return success({
       channels: {
         whatsapp: {
-          connected: false,
-          phoneNumber: userProfile?.phoneE164 || '',
-          verified: false,
+          connected: !!userProfile?.whatsappPhone,
+          phoneNumber: userProfile?.whatsappPhone || '',
+          verified: userProfile?.whatsappVerified || false,
         },
         telegram: {
-          connected: false,
-          botName: '',
-          verified: false,
+          connected: !!userProfile?.telegramBotName,
+          botName: userProfile?.telegramBotName || '',
+          verified: userProfile?.telegramVerified || false,
         },
         email: {
           connected: true,
@@ -37,18 +37,34 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { error } = await getSupabaseUser(request);
+  const { user, error } = await getSupabaseUser(request);
   if (error) return unauthorized(error.message);
 
   try {
     const data = await request.json();
     const { action, channel, phoneNumber, botName } = data;
 
-    console.log('Channel action:', { action, channel, phoneNumber, botName });
+    console.log('Channel action:', { action, channel, phoneNumber, botName, userId: user.id });
 
     if (action === 'connect') {
-      // In production, verify the channel connection here
-      // Send OTP to WhatsApp, verify Telegram bot, etc.
+      // Save channel connection to database
+      const updateData: any = {};
+
+      if (channel === 'whatsapp' && phoneNumber) {
+        updateData.whatsappPhone = phoneNumber;
+        updateData.whatsappVerified = true;
+      } else if (channel === 'telegram' && botName) {
+        updateData.telegramBotName = botName;
+        updateData.telegramVerified = true;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await db.userProfile.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
+
       return success({
         message: `${channel} connected successfully`,
         channel: {
@@ -60,7 +76,24 @@ export async function PATCH(request: NextRequest) {
         },
       });
     } else if (action === 'disconnect') {
-      // Disconnect the channel
+      // Disconnect the channel from database
+      const updateData: any = {};
+
+      if (channel === 'whatsapp') {
+        updateData.whatsappPhone = null;
+        updateData.whatsappVerified = false;
+      } else if (channel === 'telegram') {
+        updateData.telegramBotName = null;
+        updateData.telegramVerified = false;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await db.userProfile.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
+
       return success({
         message: `${channel} disconnected successfully`,
       });
